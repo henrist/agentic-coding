@@ -16,6 +16,7 @@ exec safehouse \
   --add-dirs="/Users/henrste/Code/entailor" \
   --add-dirs-ro="/Users/henrste/.gitignore" \
   --add-dirs-ro="/Users/henrste/.config/gh" \
+  --add-dirs-ro="/Users/henrste/.aws/config" \
   --env-pass=PATH \
   -- \
   "$cmd" \

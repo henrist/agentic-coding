@@ -5,7 +5,7 @@ set -eu
 # Token only lives in this process + the real gh process, never in the parent env.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SOCKET_PATH="${SCRIPT_DIR%/bin}/.gh-token.sock"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
 
 # Find real gh binary (skip ourselves)
 REAL_GH=""
@@ -22,18 +22,24 @@ if [[ -z "$REAL_GH" ]]; then
     exit 1
 fi
 
-# If no socket, run gh without auth (some commands don't need it)
+# If no socket, run gh without auth
 if [[ ! -S "$SOCKET_PATH" ]]; then
     exec "$REAL_GH" "$@"
 fi
 
-# Fetch token from credential server
+# Request token from credential server (JSON protocol)
 GH_TOKEN=$(python3 -c "
-import socket, sys
+import json, socket, sys
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 try:
     s.connect('$SOCKET_PATH')
-    print(s.recv(4096).decode().strip())
+    s.sendall(json.dumps({'type': 'gh'}).encode() + b'\n')
+    data = s.recv(4096).decode().strip()
+    r = json.loads(data)
+    if r.get('ok') and r.get('token'):
+        print(r['token'])
+    else:
+        sys.exit(1)
 except Exception:
     sys.exit(1)
 finally:

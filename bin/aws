@@ -1,0 +1,86 @@
+#!/bin/bash
+set -eu
+
+# aws wrapper that fetches temporary credentials on-demand from credential server.
+# Credentials only live in this process + the real aws process, never in the parent env.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+# Find real aws binary (skip ourselves)
+REAL_AWS=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/aws" ]]; then
+        REAL_AWS="$dir/aws"
+        break
+    fi
+done
+
+if [[ -z "$REAL_AWS" ]]; then
+    echo "Error: aws not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    exit 1
+fi
+
+# Extract --profile from args
+PROFILE=""
+ARGS=()
+SKIP_NEXT=false
+for arg in "$@"; do
+    if $SKIP_NEXT; then
+        PROFILE="$arg"
+        SKIP_NEXT=false
+        continue
+    fi
+    if [[ "$arg" == "--profile" ]]; then
+        SKIP_NEXT=true
+        continue
+    fi
+    if [[ "$arg" == --profile=* ]]; then
+        PROFILE="${arg#--profile=}"
+        continue
+    fi
+    ARGS+=("$arg")
+done
+
+# Also check AWS_PROFILE env var
+if [[ -z "$PROFILE" && -n "${AWS_PROFILE:-}" ]]; then
+    PROFILE="$AWS_PROFILE"
+fi
+
+# If no profile or no socket, run aws as-is
+if [[ -z "$PROFILE" || ! -S "$SOCKET_PATH" ]]; then
+    exec "$REAL_AWS" "$@"
+fi
+
+# Request credentials from credential server (JSON protocol)
+CREDS=$(python3 -c "
+import json, socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect('$SOCKET_PATH')
+    s.sendall(json.dumps({'type': 'aws', 'profile': '$PROFILE'}).encode() + b'\n')
+    data = s.recv(8192).decode().strip()
+    r = json.loads(data)
+    if r.get('ok') and r.get('access_key_id'):
+        print(r['access_key_id'])
+        print(r['secret_access_key'])
+        print(r.get('session_token', ''))
+    else:
+        sys.exit(1)
+except Exception:
+    sys.exit(1)
+finally:
+    s.close()
+" 2>/dev/null) || true
+
+if [[ -n "$CREDS" ]]; then
+    # Read the three lines of credentials
+    IFS=$'\n' read -rd '' AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<< "$CREDS" || true
+    export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+    # Run without --profile since creds are in env (avoids SSO lookup in sandbox)
+    exec "$REAL_AWS" "${ARGS[@]}"
+fi
+
+# Fallback: denied or server error, run as-is
+exec "$REAL_AWS" "$@"
