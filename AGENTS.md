@@ -87,15 +87,15 @@ Approving one credential doesn't approve others.
 - `bin/` wrappers run INSIDE sandbox with restricted filesystem.
 - `~/.config/gh` and `~/.aws/config` mounted read-only (config only, no secrets).
 - Keychain, SSO cache, and credential files NOT accessible from sandbox.
-- `aws` wrapper strips `--profile` from args when injecting env var creds
-  to avoid SSO lookup failures inside sandbox.
+- `aws` wrapper keeps `--profile` for region/output config; env var creds
+  take precedence over SSO automatically.
 
 ## Sandbox (safe.sh)
 
 [Agent Safehouse](https://agent-safehouse.dev/) — macOS kernel-level sandbox,
 deny-by-default filesystem. `safe.sh` grants:
 
-- Read-write: `~/coding-agents`, `~/.claude`, `~/Code/entailor`
+- Read-write: `~/coding-agents`, `~/.claude`, plus cwd project dir if in allowlist
 - Read-only: `~/.gitignore`, `~/.config/gh`, `~/.aws/config`
 - PATH: prepends `bin/` for credential wrappers
 
