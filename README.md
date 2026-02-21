@@ -32,18 +32,21 @@ Start the credential server in a separate terminal:
 ./credential-server
 ```
 
-Then use `gh` / `aws` inside the sandbox. Each credential request prompts for approval (single keypress):
+Then use `gh` / `aws` inside the sandbox. Each credential request prompts with a two-keypress approval:
 
-- **d** / **Enter** — deny
-- **o** — allow once
-- **1** — auto-approve for 1 minute
-- **5** — auto-approve for 5 minutes
-- **s** — auto-approve until sandbox exits
-- **r** — read-only for 1 minute (auto-approves reads, re-prompts mutations)
-- **R** — read-only for 5 minutes (auto-approves reads, re-prompts mutations)
-- **e** — read-only until sandbox exits (auto-approves reads, re-prompts mutations)
+**Step 1 — mode:**
+- **Enter** — allow once
+- **d** / **Esc** — deny
+- **r** — reads (auto-approve read-only commands)
+- **t** — this+reads (auto-approve reads + similar write commands)
+- **a** — all (auto-approve everything)
 
-Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:go-dev-op` doesn't approve `aws:go-prod-admin`). Read-only modes allow credential reads (e.g., listing resources) without requiring approval for each request, but still prompt for mutations (e.g., creating or deleting resources).
+**Step 2 — duration (for r/t/a):**
+- **1** — 1 minute
+- **5** — 5 minutes
+- **s** — session (until sandbox exits)
+
+Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:go-dev-op` doesn't approve `aws:go-prod-admin`). Only one approval is active per context at a time — selecting a new mode replaces the previous one.
 
 ### GitHub CLI
 
