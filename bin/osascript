@@ -1,3 +1,5 @@
 #!/bin/bash
 # No-op — osascript can't reach XPC services inside sandbox, suppress errors
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "[$(date '+%H:%M:%S')] osascript $*" >> "${SCRIPT_DIR%/bin}/osascript.log"
 exit 0

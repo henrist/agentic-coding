@@ -1,2 +1,3 @@
 *.sock
 *.generated.sb
+osascript.log
