@@ -17,7 +17,7 @@ exec safehouse \
   --add-dirs-ro="/Users/henrste/.gitignore" \
   --add-dirs-ro="/Users/henrste/.config/gh" \
   --add-dirs-ro="/Users/henrste/.aws/config" \
-  --env-pass=PATH \
+  --env-pass=PATH,TERM \
   -- \
   "$cmd" \
   "$@"
