@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cmd="$1"
 shift 1
 
-printf "Run %s [s]andboxed or [u]nsandboxed? " "$cmd"
+printf "Run %s [s]andboxed  [u]nsandboxed  [o]ptions? " "$cmd"
 read -r -n1 choice
 echo
 
@@ -24,11 +24,13 @@ if [[ ! -S "$SCRIPT_DIR/.credential-server.sock" ]]; then
 fi
 
 AZURE_ARGS=()
-printf "Mount ~/.azure for az CLI? [y/N] "
-read -r -n1 azure_choice
-echo
-if [[ "$azure_choice" == "y" || "$azure_choice" == "Y" ]]; then
+if [[ "$choice" == "o" || "$choice" == "O" ]]; then
+  printf "  Mount ~/.azure for az CLI? [y/N] "
+  read -r -n1 azure_choice
+  echo
+  if [[ "$azure_choice" == "y" || "$azure_choice" == "Y" ]]; then
     AZURE_ARGS=(--add-dirs-ro="/Users/henrste/.azure")
+  fi
 fi
 
 # Override git credential helper — keychain/GCM can't work inside sandbox
