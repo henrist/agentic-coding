@@ -48,6 +48,8 @@ finally:
 
 if [[ -n "$GH_TOKEN" ]]; then
     export GH_TOKEN
+else
+    echo "Credential request denied — running gh unauthenticated" >&2
 fi
 
 exec "$REAL_GH" "$@"

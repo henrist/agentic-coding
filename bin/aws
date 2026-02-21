@@ -102,5 +102,6 @@ if [[ -n "$CREDS" ]]; then
     exec "$REAL_AWS" "${ARGS[@]}"
 fi
 
-# Fallback: denied or server error, run as-is
+# Fallback: denied or server error
+echo "Credential request denied — running aws unauthenticated" >&2
 exec "$REAL_AWS" "$@"
