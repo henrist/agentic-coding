@@ -1,13 +1,20 @@
 #!/bin/bash
 set -eu
 
-cmd=$1
-echo "Running $1 through safehouse"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+cmd="$1"
 shift 1
 
-echo "Modify $0 if needed"
+printf "Run %s [s]andboxed or [u]nsandboxed? " "$cmd"
+read -r -n1 choice
+echo
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ "$choice" == "u" || "$choice" == "U" ]]; then
+  export PATH="$SCRIPT_DIR/bin:$PATH"
+  exec "$cmd" "$@"
+fi
+
 export PATH="$SCRIPT_DIR/bin:$PATH"
 
 # Override git credential helper — keychain/GCM can't work inside sandbox
