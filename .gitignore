@@ -2,3 +2,5 @@
 *.generated.sb
 osascript.log
 credential-audit.log
+.sisyphus/
+session-*.md
