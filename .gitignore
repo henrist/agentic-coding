@@ -1,3 +1,4 @@
 *.sock
 *.generated.sb
 osascript.log
+credential-audit.log
