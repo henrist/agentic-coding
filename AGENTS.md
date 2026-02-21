@@ -87,8 +87,8 @@ Approving one credential doesn't approve others.
 - `bin/` wrappers run INSIDE sandbox with restricted filesystem.
 - `~/.config/gh` and `~/.aws/config` mounted read-only (config only, no secrets).
 - Keychain, SSO cache, and credential files NOT accessible from sandbox.
-- `aws` wrapper keeps `--profile` for region/output config; env var creds
-  take precedence over SSO automatically.
+- `aws` wrapper strips `--profile` to avoid SSO lookup in sandbox; extracts
+  region/output from config and injects as `AWS_DEFAULT_REGION`/`AWS_DEFAULT_OUTPUT`.
 
 ## Sandbox (safe.sh)
 
