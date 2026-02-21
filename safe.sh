@@ -10,6 +10,13 @@ echo "Modify $0 if needed"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 export PATH="$SCRIPT_DIR/bin:$PATH"
 
+# Override git credential helper — keychain/GCM can't work inside sandbox
+export GIT_CONFIG_COUNT=2
+export GIT_CONFIG_KEY_0="credential.helper"
+export GIT_CONFIG_VALUE_0=""
+export GIT_CONFIG_KEY_1="credential.helper"
+export GIT_CONFIG_VALUE_1="$SCRIPT_DIR/bin/git-credential-helper"
+
 # Allowed project dirs — added read-write only when cwd is inside one
 ALLOWED_DIRS=(
   "/Users/henrste/Code/entailor"
@@ -33,7 +40,7 @@ exec safehouse \
   --add-dirs-ro="/Users/henrste/.gitignore" \
   --add-dirs-ro="/Users/henrste/.config/gh" \
   --add-dirs-ro="/Users/henrste/.aws/config" \
-  --env-pass=PATH,TERM \
+  --env-pass=PATH,TERM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1 \
   -- \
   "$cmd" \
   "$@"
