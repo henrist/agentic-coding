@@ -23,6 +23,14 @@ if [[ ! -S "$SCRIPT_DIR/.credential-server.sock" ]]; then
   echo
 fi
 
+AZURE_ARGS=()
+printf "Mount ~/.azure for az CLI? [y/N] "
+read -r -n1 azure_choice
+echo
+if [[ "$azure_choice" == "y" || "$azure_choice" == "Y" ]]; then
+    AZURE_ARGS=(--add-dirs-ro="/Users/henrste/.azure")
+fi
+
 # Override git credential helper — keychain/GCM can't work inside sandbox
 export GIT_CONFIG_COUNT=2
 export GIT_CONFIG_KEY_0="credential.helper"
@@ -53,6 +61,7 @@ exec safehouse \
   --add-dirs-ro="/Users/henrste/.gitignore" \
   --add-dirs-ro="/Users/henrste/.config/gh" \
   --add-dirs-ro="/Users/henrste/.aws/config" \
+  ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"} \
   --env-pass=PATH,TERM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1 \
   -- \
   "$cmd" \

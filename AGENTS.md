@@ -13,6 +13,7 @@ safe.sh               # Safehouse sandbox wrapper
 credential-server     # Python credential server (runs outside sandbox)
 bin/gh                # gh wrapper (runs inside sandbox)
 bin/aws               # aws wrapper (runs inside sandbox)
+bin/az                # az wrapper (runs inside sandbox)
 ```
 
 ## Workflow
@@ -64,12 +65,13 @@ JSON over Unix socket (`.credential-server.sock`). One request-response per conn
 ```
 Request:  {"type": "gh"}\n
 Request:  {"type": "aws", "profile": "my-profile"}\n
+Request:  {"type": "az"}\n
 Response: {"ok": true, "token": "gho_..."}\n
 Response: {"ok": true, "access_key_id": "...", "secret_access_key": "...", "session_token": "..."}\n
 Response: {"ok": false}\n
 ```
 
-Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"` or `"aws:<profile>"`.
+Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, or `"az"`.
 Approving one credential doesn't approve others.
 
 Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `t`=this+reads, `a`=all), then duration for r/t/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
@@ -80,6 +82,8 @@ Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `t`
 2. Handle new type in `handle_request()` and `_fetch_creds()`
 3. Create `bin/xyz` wrapper following `bin/gh` pattern
 4. Mount needed read-only config in `safe.sh` (`--add-dirs-ro=...`)
+
+Note: `az` is approval-only (no credential injection) — it reads tokens from `~/.azure` directly.
 
 ## Security model
 

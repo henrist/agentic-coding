@@ -1,0 +1,48 @@
+#!/bin/bash
+set -eu
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+REAL_AZ=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/az" ]]; then
+        REAL_AZ="$dir/az"
+        break
+    fi
+done
+
+if [[ -z "$REAL_AZ" ]]; then
+    echo "Error: az not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    exit 1
+fi
+
+if [[ ! -S "$SOCKET_PATH" ]]; then
+    exec "$REAL_AZ" "$@"
+fi
+
+APPROVED=$(python3 -c "
+import json, socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect('$SOCKET_PATH')
+    s.sendall(json.dumps({'type': 'az'}).encode() + b'\n')
+    data = s.recv(4096).decode().strip()
+    r = json.loads(data)
+    if r.get('ok'):
+        print('yes')
+    else:
+        sys.exit(1)
+except Exception:
+    sys.exit(1)
+finally:
+    s.close()
+" 2>/dev/null) || true
+
+if [[ "$APPROVED" != "yes" ]]; then
+    echo "Credential request denied" >&2
+    exit 1
+fi
+
+exec "$REAL_AZ" "$@"
