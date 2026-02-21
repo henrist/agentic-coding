@@ -1,8 +1,14 @@
 # coding-agents
 
-Sandboxed environment for running coding agents using [Agent Safehouse](https://agent-safehouse.dev/).
+Shared resources for agentic coding — sandbox tooling, rules, and configuration.
 
-## Usage
+- `rules.md` — user-specific rules for AI coding agents (commit style, conventions, etc.)
+- `safe.sh` + `credential-server` — sandboxed execution with on-demand credential injection
+- `bin/` — CLI wrappers for credential-aware tools inside the sandbox
+
+## Sandbox
+
+Run commands inside [Agent Safehouse](https://agent-safehouse.dev/) with deny-by-default filesystem access.
 
 ```bash
 # Run any command in the sandbox
