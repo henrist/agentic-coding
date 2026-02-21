@@ -29,7 +29,7 @@ done
 exec safehouse \
   --add-dirs="/Users/henrste/coding-agents" \
   --add-dirs="/Users/henrste/.claude" \
-  "${CWD_ARGS[@]}" \
+  ${CWD_ARGS[@]+"${CWD_ARGS[@]}"} \
   --add-dirs-ro="/Users/henrste/.gitignore" \
   --add-dirs-ro="/Users/henrste/.config/gh" \
   --add-dirs-ro="/Users/henrste/.aws/config" \
