@@ -1,0 +1,3 @@
+#!/bin/bash
+# No-op — osascript can't reach XPC services inside sandbox, suppress errors
+exit 0
