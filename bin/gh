@@ -1,0 +1,47 @@
+#!/bin/bash
+set -eu
+
+# gh wrapper that fetches token on-demand from credential server.
+# Token only lives in this process + the real gh process, never in the parent env.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.gh-token.sock"
+
+# Find real gh binary (skip ourselves)
+REAL_GH=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/gh" ]]; then
+        REAL_GH="$dir/gh"
+        break
+    fi
+done
+
+if [[ -z "$REAL_GH" ]]; then
+    echo "Error: gh not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    exit 1
+fi
+
+# If no socket, run gh without auth (some commands don't need it)
+if [[ ! -S "$SOCKET_PATH" ]]; then
+    exec "$REAL_GH" "$@"
+fi
+
+# Fetch token from credential server
+GH_TOKEN=$(python3 -c "
+import socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect('$SOCKET_PATH')
+    print(s.recv(4096).decode().strip())
+except Exception:
+    sys.exit(1)
+finally:
+    s.close()
+" 2>/dev/null) || true
+
+if [[ -n "$GH_TOKEN" ]]; then
+    export GH_TOKEN
+fi
+
+exec "$REAL_GH" "$@"

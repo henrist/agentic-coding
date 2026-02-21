@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Credential server for gh CLI inside safehouse sandbox.
+
+Listens on a Unix socket and responds with the gh auth token.
+Run this OUTSIDE the sandbox before using gh inside it.
+"""
+import os
+import signal
+import socket
+import struct
+import subprocess
+import sys
+
+SOCKET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".gh-token.sock")
+
+
+def cleanup(*_):
+    try:
+        os.unlink(SOCKET_PATH)
+    except OSError:
+        pass
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, cleanup)
+signal.signal(signal.SIGTERM, cleanup)
+
+if os.path.exists(SOCKET_PATH):
+    os.unlink(SOCKET_PATH)
+
+sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+sock.bind(SOCKET_PATH)
+os.chmod(SOCKET_PATH, 0o600)
+sock.listen(5)
+
+print(f"gh credential server listening on {SOCKET_PATH}")
+print("Press Ctrl+C to stop")
+
+SOL_LOCAL = 0
+LOCAL_PEERPID = 2
+
+
+def get_process_chain(pid, max_depth=8):
+    """Walk the process tree up from pid, return list of (pid, name, args) tuples."""
+    chain = []
+    current = pid
+    for _ in range(max_depth):
+        if current <= 1:
+            break
+        try:
+            out = subprocess.check_output(
+                ["ps", "-p", str(current), "-o", "pid=,ppid=,comm=,args="],
+                stderr=subprocess.DEVNULL,
+            ).decode().strip()
+            parts = out.split(None, 3)
+            if len(parts) < 4:
+                break
+            chain.append((int(parts[0]), os.path.basename(parts[2]), parts[3]))
+            current = int(parts[1])
+        except (subprocess.CalledProcessError, ValueError):
+            break
+    return chain
+
+
+def format_chain(chain):
+    """Format process chain between bin/gh wrapper and safehouse (inclusive)."""
+    lines = []
+    seen_labels = set()
+    for pid, name, args in chain:
+        # Skip our own socket client
+        if ".gh-token.sock" in args:
+            continue
+        # Stop after safehouse boundary, show its working directory
+        if "safehouse" in args:
+            try:
+                cwd_out = subprocess.check_output(
+                    ["lsof", "-a", "-d", "cwd", "-p", str(pid), "-Fn"],
+                    stderr=subprocess.DEVNULL,
+                ).decode()
+                cwd = next((l[1:] for l in cwd_out.splitlines() if l.startswith("n/")), "")
+                lines.append((pid, f"safehouse ({cwd})" if cwd else "safehouse"))
+            except subprocess.CalledProcessError:
+                lines.append((pid, "safehouse"))
+            break
+        if "bin/gh" in args:
+            parts = args.split("bin/gh", 1)
+            label = f"gh{parts[1]}" if len(parts) > 1 else "gh"
+        else:
+            label = args
+        if label in seen_labels:
+            continue
+        seen_labels.add(label)
+        lines.append((pid, label))
+    return lines
+
+
+try:
+    while True:
+        conn, _ = sock.accept()
+        try:
+            # Get peer PID (macOS)
+            peer_pid = struct.unpack("i", conn.getsockopt(SOL_LOCAL, LOCAL_PEERPID, 4))[0]
+            chain = get_process_chain(peer_pid)
+
+            print()
+            if chain:
+                formatted = format_chain(chain)
+                print("  process chain:")
+                for i, (pid, label) in enumerate(formatted):
+                    indent = "  " + "  " * i + ("└─ " if i > 0 else "")
+                    print(f"  {indent}[{pid}] {label}")
+
+            answer = input("\033[1m  Approve? [y/N]\033[0m ").strip().lower()
+            if answer == "y":
+                token = subprocess.check_output(
+                    ["gh", "auth", "token"], stderr=subprocess.DEVNULL
+                ).strip()
+                conn.sendall(token)
+                print("  → token sent")
+            else:
+                conn.sendall(b"")
+                print("  → denied")
+        except (subprocess.CalledProcessError, EOFError):
+            conn.sendall(b"")
+        finally:
+            conn.close()
+finally:
+    cleanup()
