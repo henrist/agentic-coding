@@ -3,6 +3,12 @@
 
 Listens on a Unix socket and responds with the gh auth token.
 Run this OUTSIDE the sandbox before using gh inside it.
+
+Single-keypress approval:
+  [d/Enter] deny     - reject this request
+  [o]       once     - allow this single request
+  [5]       5 min    - auto-approve this sandbox for 5 min
+  [s]       session  - auto-approve until this sandbox exits
 """
 import os
 import signal
@@ -10,8 +16,15 @@ import socket
 import struct
 import subprocess
 import sys
+import termios
+import tty
+from datetime import datetime, timedelta
 
 SOCKET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".gh-token.sock")
+
+# Approval memory: {safehouse_pid: {"expires": datetime | None}}
+# expires=None means "until safehouse process exits"
+approvals = {}
 
 
 def cleanup(*_):
@@ -33,15 +46,18 @@ sock.bind(SOCKET_PATH)
 os.chmod(SOCKET_PATH, 0o600)
 sock.listen(5)
 
-print(f"gh credential server listening on {SOCKET_PATH}")
-print("Press Ctrl+C to stop")
-
 SOL_LOCAL = 0
 LOCAL_PEERPID = 2
 
+DIM = "\033[2m"
+BOLD = "\033[1m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+RESET = "\033[0m"
+
 
 def get_process_chain(pid, max_depth=8):
-    """Walk the process tree up from pid, return list of (pid, name, args) tuples."""
+    """Walk the process tree up from pid."""
     chain = []
     current = pid
     for _ in range(max_depth):
@@ -62,65 +78,142 @@ def get_process_chain(pid, max_depth=8):
     return chain
 
 
-def format_chain(chain):
-    """Format process chain between bin/gh wrapper and safehouse (inclusive)."""
-    lines = []
-    seen_labels = set()
+def get_cwd(pid):
+    """Get working directory of a process."""
+    try:
+        out = subprocess.check_output(
+            ["lsof", "-a", "-d", "cwd", "-p", str(pid), "-Fn"],
+            stderr=subprocess.DEVNULL,
+        ).decode()
+        return next((l[1:] for l in out.splitlines() if l.startswith("n/")), None)
+    except subprocess.CalledProcessError:
+        return None
+
+
+def parse_chain(chain):
+    """Extract gh command and safehouse info from process chain."""
+    gh_cmd = None
+    safehouse_pid = None
+    safehouse_cwd = None
+    seen = set()
     for pid, name, args in chain:
-        # Skip our own socket client
         if ".gh-token.sock" in args:
             continue
-        # Stop after safehouse boundary, show its working directory
         if "safehouse" in args:
-            try:
-                cwd_out = subprocess.check_output(
-                    ["lsof", "-a", "-d", "cwd", "-p", str(pid), "-Fn"],
-                    stderr=subprocess.DEVNULL,
-                ).decode()
-                cwd = next((l[1:] for l in cwd_out.splitlines() if l.startswith("n/")), "")
-                lines.append((pid, f"safehouse ({cwd})" if cwd else "safehouse"))
-            except subprocess.CalledProcessError:
-                lines.append((pid, "safehouse"))
+            safehouse_pid = pid
+            safehouse_cwd = get_cwd(pid)
             break
         if "bin/gh" in args:
             parts = args.split("bin/gh", 1)
             label = f"gh{parts[1]}" if len(parts) > 1 else "gh"
         else:
             label = args
-        if label in seen_labels:
-            continue
-        seen_labels.add(label)
-        lines.append((pid, label))
-    return lines
+        if label not in seen:
+            seen.add(label)
+            gh_cmd = label
+    return gh_cmd or "gh", safehouse_pid, safehouse_cwd
 
+
+def check_approval(safehouse_pid):
+    """Check if a safehouse session is pre-approved. Returns (approved, reason)."""
+    if safehouse_pid is None or safehouse_pid not in approvals:
+        return False, None
+    entry = approvals[safehouse_pid]
+    if entry["expires"] is not None:
+        remaining = (entry["expires"] - datetime.now()).total_seconds()
+        if remaining <= 0:
+            del approvals[safehouse_pid]
+            return False, None
+        mins, secs = divmod(int(remaining), 60)
+        return True, f"{mins}m{secs:02d}s left"
+    else:
+        try:
+            os.kill(safehouse_pid, 0)
+            return True, "session"
+        except ProcessLookupError:
+            del approvals[safehouse_pid]
+            return False, None
+
+
+def read_key():
+    """Read a single keypress without requiring Enter."""
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    return ch
+
+
+def send_token(conn):
+    """Fetch and send the gh token."""
+    try:
+        token = subprocess.check_output(
+            ["gh", "auth", "token"], stderr=subprocess.DEVNULL
+        ).strip()
+        conn.sendall(token)
+        return True
+    except subprocess.CalledProcessError:
+        conn.sendall(b"")
+        return False
+
+
+print("gh credential server listening")
+print("Press Ctrl+C to stop\n")
 
 try:
     while True:
         conn, _ = sock.accept()
         try:
-            # Get peer PID (macOS)
             peer_pid = struct.unpack("i", conn.getsockopt(SOL_LOCAL, LOCAL_PEERPID, 4))[0]
             chain = get_process_chain(peer_pid)
+            gh_cmd, safehouse_pid, safehouse_cwd = parse_chain(chain)
 
-            print()
-            if chain:
-                formatted = format_chain(chain)
-                print("  process chain:")
-                for i, (pid, label) in enumerate(formatted):
-                    indent = "  " + "  " * i + ("└─ " if i > 0 else "")
-                    print(f"  {indent}[{pid}] {label}")
+            cwd_label = f" {DIM}({safehouse_cwd}){RESET}" if safehouse_cwd else ""
+            session_label = f"safehouse/{safehouse_pid}{cwd_label}" if safehouse_pid else "unknown"
 
-            answer = input("\033[1m  Approve? [y/N]\033[0m ").strip().lower()
-            if answer == "y":
-                token = subprocess.check_output(
-                    ["gh", "auth", "token"], stderr=subprocess.DEVNULL
-                ).strip()
-                conn.sendall(token)
-                print("  → token sent")
-            else:
-                conn.sendall(b"")
-                print("  → denied")
-        except (subprocess.CalledProcessError, EOFError):
+            # Check pre-approval
+            approved, reason = check_approval(safehouse_pid)
+            if approved:
+                send_token(conn)
+                print(f"  {GREEN}✓{RESET} {gh_cmd} {DIM}— {session_label} — {reason}{RESET}")
+                continue
+
+            # Prompt
+            print(f"\n  {BOLD}{gh_cmd}{RESET}")
+            print(f"  {session_label}")
+            sys.stdout.write(f"  {DIM}[d]{RESET}eny  {DIM}[o]{RESET}nce  {DIM}[5]{RESET} min  {DIM}[s]{RESET}ession ▸ ")
+            sys.stdout.flush()
+
+            while True:
+                ch = read_key()
+                if ch == "\x03":  # Ctrl+C
+                    print()
+                    cleanup()
+                elif ch in ("d", "D", "\r", "\n"):
+                    conn.sendall(b"")
+                    print(f"{RED}denied{RESET}")
+                    break
+                elif ch in ("o", "O"):
+                    send_token(conn)
+                    print(f"{GREEN}once{RESET}")
+                    break
+                elif ch == "5":
+                    send_token(conn)
+                    if safehouse_pid:
+                        approvals[safehouse_pid] = {"expires": datetime.now() + timedelta(minutes=5)}
+                    print(f"{GREEN}5 min{RESET}")
+                    break
+                elif ch in ("s", "S"):
+                    send_token(conn)
+                    if safehouse_pid:
+                        approvals[safehouse_pid] = {"expires": None}
+                    print(f"{GREEN}session{RESET}")
+                    break
+
+        except EOFError:
             conn.sendall(b"")
         finally:
             conn.close()
