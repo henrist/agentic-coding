@@ -7,6 +7,9 @@ set -eu
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
 
+# Disable pager — not useful in sandbox/agent context
+export AWS_PAGER=""
+
 # Find real aws binary (skip ourselves)
 REAL_AWS=""
 IFS=: read -ra path_dirs <<< "$PATH"
