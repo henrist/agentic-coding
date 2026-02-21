@@ -81,8 +81,8 @@ if [[ -n "$CREDS" ]]; then
     # Read the three lines of credentials
     IFS=$'\n' read -rd '' AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<< "$CREDS" || true
     export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-    # Run without --profile since creds are in env (avoids SSO lookup in sandbox)
-    exec "$REAL_AWS" "${ARGS[@]}"
+    # Keep --profile for region/output config; env var creds take precedence over SSO
+    exec "$REAL_AWS" "$@"
 fi
 
 # Fallback: denied or server error, run as-is
