@@ -36,10 +36,14 @@ Then use `gh` / `aws` inside the sandbox. Each credential request prompts for ap
 
 - **d** / **Enter** — deny
 - **o** — allow once
-- **5** — auto-approve this sandbox for 5 minutes
-- **s** — auto-approve until this sandbox process exits
+- **1** — auto-approve for 1 minute
+- **5** — auto-approve for 5 minutes
+- **s** — auto-approve until sandbox exits
+- **r** — read-only for 1 minute (auto-approves reads, re-prompts mutations)
+- **R** — read-only for 5 minutes (auto-approves reads, re-prompts mutations)
+- **e** — read-only until sandbox exits (auto-approves reads, re-prompts mutations)
 
-Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:go-dev-op` doesn't approve `aws:go-prod-admin`).
+Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:go-dev-op` doesn't approve `aws:go-prod-admin`). Read-only modes allow credential reads (e.g., listing resources) without requiring approval for each request, but still prompt for mutations (e.g., creating or deleting resources).
 
 ### GitHub CLI
 

@@ -72,6 +72,8 @@ Response: {"ok": false}\n
 Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"` or `"aws:<profile>"`.
 Approving one credential doesn't approve others.
 
+Approval modes include read-only options: approve reads for a time window while re-prompting mutations (e.g., `r` for 1 minute, `R` for 5 minutes, `e` until sandbox exits).
+
 ### Adding new credential types
 
 1. Add fetch function in `credential-server` (e.g. `fetch_xyz_token()`)
