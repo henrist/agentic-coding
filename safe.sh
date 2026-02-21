@@ -17,6 +17,12 @@ fi
 
 export PATH="$SCRIPT_DIR/bin:$PATH"
 
+if [[ ! -S "$SCRIPT_DIR/.credential-server.sock" ]]; then
+  echo -e "\033[33mWarning: credential server not running — gh/aws/git auth will fail\033[0m"
+  echo -e "\033[2mStart it in another terminal: $SCRIPT_DIR/credential-server\033[0m"
+  echo
+fi
+
 # Override git credential helper — keychain/GCM can't work inside sandbox
 export GIT_CONFIG_COUNT=2
 export GIT_CONFIG_KEY_0="credential.helper"
