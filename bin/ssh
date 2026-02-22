@@ -1,0 +1,59 @@
+#!/bin/bash
+set -eu
+
+# ssh wrapper that gates SSH agent access through credential server.
+# Strips SSH_AUTH_SOCK unless approved — agent signing only happens if explicitly allowed.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+# Save and strip SSH_AUTH_SOCK
+ORIG_SSH_AUTH_SOCK="${SSH_AUTH_SOCK:-}"
+unset SSH_AUTH_SOCK
+
+# Find real ssh binary (skip ourselves)
+REAL_SSH=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/ssh" ]]; then
+        REAL_SSH="$dir/ssh"
+        break
+    fi
+done
+
+if [[ -z "$REAL_SSH" ]]; then
+    echo "Error: ssh not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    exit 1
+fi
+
+# If no socket or no agent was available, run ssh without agent
+if [[ ! -S "$SOCKET_PATH" || -z "$ORIG_SSH_AUTH_SOCK" ]]; then
+    exec "$REAL_SSH" "$@"
+fi
+
+# Request approval from credential server
+APPROVED=$(python3 -c "
+import json, socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+try:
+    s.connect('$SOCKET_PATH')
+    s.sendall(json.dumps({'type': 'ssh'}).encode() + b'\n')
+    data = s.recv(4096).decode().strip()
+    r = json.loads(data)
+    if r.get('ok'):
+        print('yes')
+    else:
+        sys.exit(1)
+except Exception:
+    sys.exit(1)
+finally:
+    s.close()
+" 2>/dev/null) || true
+
+if [[ "$APPROVED" == "yes" ]]; then
+    export SSH_AUTH_SOCK="$ORIG_SSH_AUTH_SOCK"
+else
+    echo "SSH agent access denied — running ssh without agent" >&2
+fi
+
+exec "$REAL_SSH" "$@"
