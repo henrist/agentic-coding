@@ -6,18 +6,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cmd="$1"
 shift 1
 
-printf "Run %s [s]andboxed  [u]nsandboxed  [o]ptions  [p]olicy? " "$cmd"
-read -r -n1 choice
-echo
+POLICY_ONLY=false
+choice=""
 
-if [[ "$choice" == "u" || "$choice" == "U" ]]; then
-  exec "$cmd" "$@"
-fi
-if [[ "$choice" == "p" || "$choice" == "P" ]]; then
+# SAFEHOUSE_POLICY=1 skips interactive prompt and outputs sandbox policy to stdout
+if [[ "${SAFEHOUSE_POLICY:-}" == "1" ]]; then
   POLICY_ONLY=true
-  choice="s"
 else
-  POLICY_ONLY=false
+  printf "Run %s [s]andboxed  [u]nsandboxed  [o]ptions  [p]olicy? " "$cmd"
+  read -r -n1 choice
+  echo
+
+  if [[ "$choice" == "u" || "$choice" == "U" ]]; then
+    exec "$cmd" "$@"
+  fi
+  if [[ "$choice" == "p" || "$choice" == "P" ]]; then
+    POLICY_ONLY=true
+  fi
 fi
 
 export PATH="$SCRIPT_DIR/bin:$PATH"
@@ -75,9 +80,18 @@ SAFEHOUSE_ARGS=(
 )
 
 if [[ "$POLICY_ONLY" == true ]]; then
-  POLICY_FILE="/tmp/safehouse-policy-$$.sb"
-  safehouse "${SAFEHOUSE_ARGS[@]}" --output="$POLICY_FILE"
-  echo "Policy written to: $POLICY_FILE"
+  if [[ "${SAFEHOUSE_POLICY:-}" == "1" ]]; then
+    # Env var mode: output to stdout for programmatic use
+    POLICY_FILE="$(mktemp)"
+    safehouse "${SAFEHOUSE_ARGS[@]}" --output="$POLICY_FILE"
+    cat "$POLICY_FILE"
+    rm -f "$POLICY_FILE"
+  else
+    # Interactive mode: write to file
+    POLICY_FILE="/tmp/safehouse-policy-$$.sb"
+    safehouse "${SAFEHOUSE_ARGS[@]}" --output="$POLICY_FILE"
+    echo "Policy written to: $POLICY_FILE"
+  fi
   exit 0
 fi
 

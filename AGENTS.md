@@ -111,3 +111,14 @@ deny-by-default filesystem. `safe.sh` grants:
 - PATH: prepends `bin/` for credential wrappers
 
 Modify `safe.sh` to add new directories or integrations.
+
+### Inspecting the sandbox policy
+
+Dump the active sandbox policy to stdout (non-interactive):
+
+```bash
+SAFEHOUSE_POLICY=1 ./safe.sh true
+```
+
+The policy is a macOS sandbox profile (Seatbelt `.sb` format) showing
+all allow/deny rules. Use this to verify what the sandbox permits.
