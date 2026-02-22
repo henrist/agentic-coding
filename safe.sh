@@ -71,6 +71,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs="/Users/henrste/.claude"
   --add-dirs="/Users/henrste/.ansible"
   --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
+  --enable=clipboard
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   --add-dirs-ro="/Users/henrste/.gitignore"
   --add-dirs-ro="/Users/henrste/.config/gh"
