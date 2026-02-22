@@ -11,7 +11,6 @@ read -r -n1 choice
 echo
 
 if [[ "$choice" == "u" || "$choice" == "U" ]]; then
-  export PATH="$SCRIPT_DIR/bin:$PATH"
   exec "$cmd" "$@"
 fi
 
