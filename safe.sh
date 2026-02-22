@@ -57,7 +57,7 @@ for dir in "${ALLOWED_DIRS[@]}"; do
 done
 
 exec safehouse \
-  --add-dirs="/Users/henrste/coding-agents" \
+  --add-dirs="/Users/henrste/Code/henrist/agentic-coding" \
   --add-dirs="/Users/henrste/.claude" \
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"} \
   --add-dirs-ro="/Users/henrste/.gitignore" \

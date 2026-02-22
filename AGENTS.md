@@ -8,18 +8,23 @@ injection, and user-specific rules. Not a library or app.
 ### Structure
 
 ```
-rules.md              # Cross-repo agent conventions (symlinked into other repos)
+rules.md              # Cross-repo agent conventions (referenced by multiple tools)
 safe.sh               # Safehouse sandbox wrapper
 credential-server     # Python credential server (runs outside sandbox)
 bin/gh                # gh wrapper (runs inside sandbox)
 bin/aws               # aws wrapper (runs inside sandbox)
 bin/az                # az wrapper (runs inside sandbox)
+bin/git-credential-helper  # git credential helper (runs inside sandbox)
+bin/osascript         # osascript wrapper (neutered inside sandbox)
 ```
 
 ## Workflow
 
-Commit after completing work. Local-only repo — no remote, no PR.
-Ask before committing if unsure whether the change belongs in the repo.
+Commit after completing work. Ask before committing if unsure whether
+the change belongs in the repo.
+
+This is a public repo. Never commit sensitive details (tokens, passwords,
+internal hostnames, account IDs, etc.) without asking first.
 
 ## Build / test / lint
 
@@ -74,7 +79,7 @@ Response: {"ok": false}\n
 Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, or `"az"`.
 Approving one credential doesn't approve others.
 
-Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `t`=this+reads, `a`=all), then duration for r/t/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
+Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `p`=pattern+reads, `a`=all), then duration for r/p/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
 
 ### Adding new credential types
 
@@ -101,7 +106,7 @@ Note: `az` is approval-only (no credential injection) — it reads tokens from `
 [Agent Safehouse](https://agent-safehouse.dev/) — macOS kernel-level sandbox,
 deny-by-default filesystem. `safe.sh` grants:
 
-- Read-write: `~/coding-agents`, `~/.claude`, plus cwd project dir if in allowlist
+- Read-write: `~/Code/henrist/agentic-coding`, `~/.claude`, plus cwd project dir if in allowlist
 - Read-only: `~/.gitignore`, `~/.config/gh`, `~/.aws/config`
 - PATH: prepends `bin/` for credential wrappers
 
