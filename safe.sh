@@ -64,6 +64,8 @@ done
 SAFEHOUSE_ARGS=(
   --add-dirs="/Users/henrste/Code/henrist/agentic-coding"
   --add-dirs="/Users/henrste/.claude"
+  --add-dirs="/Users/henrste/.ansible"
+  --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   --add-dirs-ro="/Users/henrste/.gitignore"
   --add-dirs-ro="/Users/henrste/.config/gh"

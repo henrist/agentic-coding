@@ -1,0 +1,4 @@
+;; Allow POSIX shared memory and semaphores.
+;; Needed by Python multiprocessing (used by Ansible).
+(allow ipc-posix-shm*)
+(allow ipc-posix-sem*)
