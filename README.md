@@ -61,6 +61,11 @@ Then use `gh` / `aws` inside the sandbox. Each credential request prompts with a
 
 Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:dev` doesn't approve `aws:admin`). Only one approval is active per context at a time — selecting a new mode replaces the previous one.
 
+By default, git/gh reads and non-protected-branch pushes are auto-approved without prompting:
+- **Reads**: `git fetch/pull/clone`, `gh pr list/view/diff`, etc.
+- **Pushes**: `git push` (not to main/master), `gh pr create/edit/close`
+- Disable with `--no-auto-git-reads` or `--no-auto-git-push`
+
 ### GitHub CLI
 
 ```bash

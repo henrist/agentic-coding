@@ -83,6 +83,9 @@ Approving one credential doesn't approve others.
 
 Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `p`=pattern+reads, `a`=all), then duration for r/p/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
 
+By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
+Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
+
 ### Adding new credential types
 
 1. Add fetch function in `credential-server` (e.g. `fetch_xyz_token()`)
