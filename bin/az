@@ -14,34 +14,14 @@ for dir in "${path_dirs[@]}"; do
 done
 
 if [[ -z "$REAL_AZ" ]]; then
-    echo "Error: az not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    echo -e "\033[31mError: az not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
     exit 1
 fi
 
-if [[ ! -S "$SOCKET_PATH" ]]; then
-    exec "$REAL_AZ" "$@"
-fi
-
-APPROVED=$(python3 -c "
-import json, socket, sys
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-try:
-    s.connect('$SOCKET_PATH')
-    s.sendall(json.dumps({'type': 'az'}).encode() + b'\n')
-    data = s.recv(4096).decode().strip()
-    r = json.loads(data)
-    if r.get('ok'):
-        print('yes')
-    else:
-        sys.exit(1)
-except Exception:
-    sys.exit(1)
-finally:
-    s.close()
-" 2>/dev/null) || true
+APPROVED=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" '{"type":"az"}' approved) || true
 
 if [[ "$APPROVED" != "yes" ]]; then
-    echo "Credential request denied" >&2
+    echo -e "\033[33mCredential request denied\033[0m" >&2
     exit 1
 fi
 

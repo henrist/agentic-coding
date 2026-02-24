@@ -21,7 +21,7 @@ for dir in "${path_dirs[@]}"; do
 done
 
 if [[ -z "$REAL_AWS" ]]; then
-    echo "Error: aws not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    echo -e "\033[31mError: aws not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
     exit 1
 fi
 
@@ -51,31 +51,13 @@ if [[ -z "$PROFILE" && -n "${AWS_PROFILE:-}" ]]; then
     PROFILE="$AWS_PROFILE"
 fi
 
-# If no profile or no socket, run aws as-is
-if [[ -z "$PROFILE" || ! -S "$SOCKET_PATH" ]]; then
+# If no profile, run aws as-is
+if [[ -z "$PROFILE" ]]; then
     exec "$REAL_AWS" "$@"
 fi
 
-# Request credentials from credential server (JSON protocol)
-CREDS=$(python3 -c "
-import json, socket, sys
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-try:
-    s.connect('$SOCKET_PATH')
-    s.sendall(json.dumps({'type': 'aws', 'profile': '$PROFILE'}).encode() + b'\n')
-    data = s.recv(8192).decode().strip()
-    r = json.loads(data)
-    if r.get('ok') and r.get('access_key_id'):
-        print(r['access_key_id'])
-        print(r['secret_access_key'])
-        print(r.get('session_token', ''))
-    else:
-        sys.exit(1)
-except Exception:
-    sys.exit(1)
-finally:
-    s.close()
-" 2>/dev/null) || true
+# Request credentials from credential server (with retry while unavailable)
+CREDS=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" "{\"type\":\"aws\",\"profile\":\"$PROFILE\"}" aws_creds) || true
 
 if [[ -n "$CREDS" ]]; then
     # Read the three lines of credentials
@@ -103,5 +85,5 @@ if [[ -n "$CREDS" ]]; then
 fi
 
 # Fallback: denied or server error
-echo "Credential request denied — running aws unauthenticated" >&2
+echo -e "\033[33mCredential request denied — running aws unauthenticated\033[0m" >&2
 exec "$REAL_AWS" "$@"

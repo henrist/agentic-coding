@@ -18,38 +18,17 @@ for dir in "${path_dirs[@]}"; do
 done
 
 if [[ -z "$REAL_GH" ]]; then
-    echo "Error: gh not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    echo -e "\033[31mError: gh not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
     exit 1
 fi
 
-# If no socket, run gh without auth
-if [[ ! -S "$SOCKET_PATH" ]]; then
-    exec "$REAL_GH" "$@"
-fi
-
-# Request token from credential server (JSON protocol)
-GH_TOKEN=$(python3 -c "
-import json, socket, sys
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-try:
-    s.connect('$SOCKET_PATH')
-    s.sendall(json.dumps({'type': 'gh'}).encode() + b'\n')
-    data = s.recv(4096).decode().strip()
-    r = json.loads(data)
-    if r.get('ok') and r.get('token'):
-        print(r['token'])
-    else:
-        sys.exit(1)
-except Exception:
-    sys.exit(1)
-finally:
-    s.close()
-" 2>/dev/null) || true
+# Request token from credential server (with retry while server is unavailable)
+GH_TOKEN=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" '{"type":"gh"}' gh_token) || true
 
 if [[ -n "$GH_TOKEN" ]]; then
     export GH_TOKEN
 else
-    echo "Credential request denied — running gh unauthenticated" >&2
+    echo -e "\033[33mCredential request denied — running gh unauthenticated\033[0m" >&2
 fi
 
 exec "$REAL_GH" "$@"

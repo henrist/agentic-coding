@@ -22,38 +22,22 @@ for dir in "${path_dirs[@]}"; do
 done
 
 if [[ -z "$REAL_SSH" ]]; then
-    echo "Error: ssh not found in PATH (looked everywhere except $SCRIPT_DIR)" >&2
+    echo -e "\033[31mError: ssh not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
     exit 1
 fi
 
-# If no socket or no agent was available, run ssh without agent
-if [[ ! -S "$SOCKET_PATH" || -z "$ORIG_SSH_AUTH_SOCK" ]]; then
+# If no agent was available, run ssh without agent
+if [[ -z "$ORIG_SSH_AUTH_SOCK" ]]; then
     exec "$REAL_SSH" "$@"
 fi
 
 # Request approval from credential server
-APPROVED=$(python3 -c "
-import json, socket, sys
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-try:
-    s.connect('$SOCKET_PATH')
-    s.sendall(json.dumps({'type': 'ssh'}).encode() + b'\n')
-    data = s.recv(4096).decode().strip()
-    r = json.loads(data)
-    if r.get('ok'):
-        print('yes')
-    else:
-        sys.exit(1)
-except Exception:
-    sys.exit(1)
-finally:
-    s.close()
-" 2>/dev/null) || true
+APPROVED=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" '{"type":"ssh"}' approved) || true
 
 if [[ "$APPROVED" == "yes" ]]; then
     export SSH_AUTH_SOCK="$ORIG_SSH_AUTH_SOCK"
 else
-    echo "SSH agent access denied — running ssh without agent" >&2
+    echo -e "\033[33mSSH agent access denied — running ssh without agent\033[0m" >&2
 fi
 
 exec "$REAL_SSH" "$@"
