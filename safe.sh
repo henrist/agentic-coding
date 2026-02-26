@@ -91,13 +91,14 @@ SAFEHOUSE_ARGS=(
   --add-dirs-ro="/opt/homebrew/opt/peon-ping"
   --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
   --append-profile="$SCRIPT_DIR/profiles/audio.sb"
+  --append-profile="$SCRIPT_DIR/profiles/notifications.sb"
   --enable=clipboard,macos-gui
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   --add-dirs-ro="/Users/henrste/.gitignore"
   --add-dirs-ro="/Users/henrste/.config/gh"
   --add-dirs-ro="/Users/henrste/.aws/config"
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
-  --env-pass=PATH,TERM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE
+  --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE
 )
 
 if [[ "$POLICY_ONLY" == true ]]; then

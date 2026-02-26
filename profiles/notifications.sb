@@ -1,0 +1,5 @@
+;; Allow user notification daemon.
+;; 'display notification' AppleScript requires com.apple.usernoted.daemon_client;
+;; blocked = "NSNotificationCenter connection invalid" + ServerConnectionFailure.
+(allow mach-lookup
+  (global-name "com.apple.usernoted.daemon_client"))
