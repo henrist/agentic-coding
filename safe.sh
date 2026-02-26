@@ -50,6 +50,23 @@ export GIT_CONFIG_VALUE_0=""
 export GIT_CONFIG_KEY_1="credential.helper"
 export GIT_CONFIG_VALUE_1="$SCRIPT_DIR/bin/git-credential-helper"
 
+# Generate sandbox AWS config with credential_process per profile (for SDK credential resolution)
+SANDBOX_AWS_CONFIG="$SCRIPT_DIR/.aws-config-sandbox"
+if [[ "$POLICY_ONLY" != true && -f "$HOME/.aws/config" ]]; then
+  python3 -c "
+import re, sys
+script_dir = sys.argv[1]
+out = []
+for line in open(sys.argv[2]):
+    out.append(line)
+    m = re.match(r'^\[profile\s+(\S+)\]', line) or re.match(r'^\[(default)\]', line)
+    if m:
+        out.append('credential_process = ' + script_dir + '/bin/aws-credential-process ' + m.group(1) + '\n')
+sys.stdout.write(''.join(out))
+" "$SCRIPT_DIR" "$HOME/.aws/config" > "$SANDBOX_AWS_CONFIG"
+fi
+export AWS_CONFIG_FILE="$SANDBOX_AWS_CONFIG"
+
 # Allowed project dirs — added read-write only when cwd is inside one
 ALLOWED_DIRS=(
   "/Users/henrste/Code/entailor"
@@ -80,7 +97,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs-ro="/Users/henrste/.config/gh"
   --add-dirs-ro="/Users/henrste/.aws/config"
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
-  --env-pass=PATH,TERM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1
+  --env-pass=PATH,TERM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE
 )
 
 if [[ "$POLICY_ONLY" == true ]]; then
