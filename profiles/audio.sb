@@ -1,0 +1,6 @@
+;; Allow audio playback (CoreAudio).
+;; Needed by peon-ping for sound notifications (afplay / peon-play).
+(allow mach-lookup
+  (global-name "com.apple.audio.coreaudiod")
+  (global-name "com.apple.audio.audiohald")
+  (global-name "com.apple.audio.AudioComponentRegistrar"))

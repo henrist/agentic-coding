@@ -70,8 +70,11 @@ SAFEHOUSE_ARGS=(
   --add-dirs="/Users/henrste/Code/henrist/agentic-coding"
   --add-dirs="/Users/henrste/.claude"
   --add-dirs="/Users/henrste/.ansible"
+  --add-dirs="/Users/henrste/.openpeon"
+  --add-dirs-ro="/opt/homebrew/opt/peon-ping"
   --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
-  --enable=clipboard
+  --append-profile="$SCRIPT_DIR/profiles/audio.sb"
+  --enable=clipboard,macos-gui
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   --add-dirs-ro="/Users/henrste/.gitignore"
   --add-dirs-ro="/Users/henrste/.config/gh"

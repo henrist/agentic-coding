@@ -1,5 +1,14 @@
 #!/bin/bash
-# No-op — osascript can't reach XPC services inside sandbox, suppress errors
+# Pass-through to real osascript — macos-gui sandbox feature allows XPC access.
+# Previously neutered; now needed for peon-ping overlay notifications.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-echo "[$(date '+%H:%M:%S')] osascript $*" >> "${SCRIPT_DIR%/bin}/osascript.log"
-exit 0
+REAL=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/osascript" ]]; then
+        REAL="$dir/osascript"
+        break
+    fi
+done
+[[ -z "$REAL" ]] && { echo "osascript: not found" >&2; exit 1; }
+exec "$REAL" "$@"
