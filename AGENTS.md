@@ -63,6 +63,7 @@ None. Verify changes manually:
 
 - Concise over verbose. Simple over clever.
 - LF line endings only.
+- No em dashes (—) in code or comments. Use regular dashes or reword.
 
 ## Credential server protocol
 
