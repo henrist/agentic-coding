@@ -93,11 +93,14 @@ SAFEHOUSE_ARGS=(
   --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
   --append-profile="$SCRIPT_DIR/profiles/audio.sb"
   --append-profile="$SCRIPT_DIR/profiles/notifications.sb"
-  --enable=clipboard,macos-gui
+  --append-profile="$SCRIPT_DIR/profiles/chromium.sb"
+  --enable=clipboard,macos-gui,electron
   ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   --add-dirs-ro="/Users/henrste/.gitignore"
   --add-dirs-ro="/Users/henrste/.config/gh"
   --add-dirs-ro="/Users/henrste/.aws/config"
+  --add-dirs-ro="/Applications/Google Chrome.app"
+  --add-dirs="/Users/henrste/Library/Caches/ms-playwright"
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
   --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY
 )
