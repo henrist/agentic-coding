@@ -19,6 +19,7 @@
 When creating a Git commit:
 
 - Prefer short and concise commit titles, ideally 50 chars or less
+- Capitalize first letter of commit title, unless using conventional commit prefixes (fix:, feat:, etc.) or starting with an identifier that is normally lowercase
 - Message body should primarily focus on _why_ a change is being made. Focus on details that gives clarity and context
 - Avoid adding a verbose commit message/body, unless it is necessary for clarity or documentation.
 - If adding a message/body, focus on the changes made and why they are important.
