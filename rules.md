@@ -50,3 +50,7 @@ minimumReleaseAge: 4320
 ```
 
 `minimumReleaseAge: 4320` ensures packages must be published for at least 3 days before they can be installed, protecting against supply chain attacks.
+
+## Node.js
+
+Assume Node.js 24+ with native TypeScript execution (strip types) unless the project indicates otherwise. No need for ts-node or tsx as a dev dependency for running scripts.
