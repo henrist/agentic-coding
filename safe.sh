@@ -88,6 +88,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs="/Users/henrste/.claude"
   --add-dirs="/Users/henrste/.ansible"
   --add-dirs="/Users/henrste/.openpeon"
+  --add-dirs="/Users/henrste/.cdk"
   --add-dirs-ro="/opt/homebrew/opt/peon-ping"
   --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
   --append-profile="$SCRIPT_DIR/profiles/audio.sb"
