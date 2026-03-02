@@ -3,3 +3,24 @@
 (allow mach-register mach-lookup
   (global-name-regex #"^com\.google\..+\.MachPortRendezvousServer\.")
 )
+
+;; GPU process -- IOKit access for hardware acceleration.
+;; Matches Chromium's own gpu_v2.sb sandbox profile.
+(allow iokit-open
+  (iokit-connection "IOAccelerator")
+  (iokit-user-client-class "AGPMClient")
+  (iokit-user-client-class "AppleGraphicsControlClient")
+  (iokit-user-client-class "AppleMGPUPowerControlClient")
+  (iokit-user-client-class "IOAccelerationUserClient")
+  (iokit-user-client-class "IOFramebufferSharedUserClient")
+  (iokit-user-client-class "IOHIDParamUserClient")
+  (iokit-user-client-class "IOSurfaceRootUserClient")
+  (iokit-user-client-class "IOSurfaceSendRight")
+  (iokit-user-client-class "RootDomainUserClient")
+)
+
+;; GPU process -- mach services for window server and shader compilation.
+(allow mach-lookup
+  (global-name "com.apple.cvmsServ")
+  (global-name "com.apple.windowserver.active")
+)
