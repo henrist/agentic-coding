@@ -106,6 +106,12 @@ for dir in ${ALLOWED_DIRS[@]+"${ALLOWED_DIRS[@]}"}; do
 done
 
 SAFEHOUSE_ARGS=(
+  --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
+  --append-profile="$SCRIPT_DIR/profiles/audio.sb"
+  --append-profile="$SCRIPT_DIR/profiles/notifications.sb"
+  --append-profile="$SCRIPT_DIR/profiles/chromium.sb"
+  --enable=clipboard,macos-gui,electron
+  ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
   ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"}
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
   --env-pass=${extra_env_pass:-PATH,TERM}
