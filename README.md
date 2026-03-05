@@ -66,6 +66,16 @@ By default, git/gh reads and non-protected-branch pushes are auto-approved witho
 - **Pushes**: `git push` (not to main/master), `gh pr create/edit/close`
 - Disable with `--no-auto-git-reads` or `--no-auto-git-push`
 
+Additional auto-approvals can be configured in `config.toml` (not committed):
+
+```toml
+[auto-approve]
+aws-profiles = ["dev", "staging"]
+```
+
+Listed AWS profiles are auto-approved without prompting, including sensitive commands.
+The server prints active auto-approved profiles on startup.
+
 ### GitHub CLI
 
 ```bash
