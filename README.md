@@ -76,11 +76,14 @@ aws-profiles = ["dev", "staging"]
 Listed AWS profiles are auto-approved without prompting, including sensitive commands.
 The server prints active auto-approved profiles on startup.
 
-Extra environment variables can be passed into the sandbox via `config.toml`:
+Extra sandbox settings can be configured in `config.toml`:
 
 ```toml
 [sandbox]
 env-pass = ["OPENCODE_EXPERIMENTAL_LSP_TY"]
+allowed-dirs = ["/Users/me/Code/myorg"]  # cwd-gated read-write dirs
+add-dirs = ["/Users/me/.myapp"]            # always read-write
+add-dirs-ro = ["/opt/mytools"]             # always read-only
 ```
 
 ### GitHub CLI

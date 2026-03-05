@@ -67,8 +67,11 @@ sys.stdout.write(''.join(out))
 fi
 export AWS_CONFIG_FILE="$SANDBOX_AWS_CONFIG"
 
-# Read extra env-pass vars from config.toml
-extra_env_pass=$(python3 -c "
+# Read sandbox config from config.toml
+ALLOWED_DIRS=()
+EXTRA_DIRS=()
+extra_env_pass=""
+eval "$(python3 -c "
 import sys
 try:
     import tomllib
@@ -76,23 +79,26 @@ except ImportError:
     sys.exit(0)
 try:
     with open(sys.argv[1], 'rb') as f:
-        envs = tomllib.load(f).get('sandbox', {}).get('env-pass', [])
+        sb = tomllib.load(f).get('sandbox', {})
+    envs = sb.get('env-pass', [])
     if envs:
-        print(','.join(envs))
+        print('extra_env_pass=' + ','.join(envs))
+    for d in sb.get('allowed-dirs', []):
+        print('ALLOWED_DIRS+=(\"' + d + '\")')
+    for d in sb.get('add-dirs', []):
+        print('EXTRA_DIRS+=(--add-dirs=\"' + d + '\")')
+    for d in sb.get('add-dirs-ro', []):
+        print('EXTRA_DIRS+=(--add-dirs-ro=\"' + d + '\")')
 except Exception:
     pass
-" "$SCRIPT_DIR/config.toml" 2>/dev/null || true)
+" "$SCRIPT_DIR/config.toml" 2>/dev/null)" 2>/dev/null || true
 
-# Allowed project dirs — added read-write only when cwd is inside one
-ALLOWED_DIRS=(
-  "/Users/henrste/Code/entailor"
-  "/Users/henrste/Code/blindern"
-  "/Users/henrste/Code/henrist"
-)
+# Allowed project dirs - added read-write only when cwd is inside one
+# Base dirs always included; config.toml [sandbox].allowed-dirs adds more
 
 CWD_ARGS=()
 CWD="$(pwd)"
-for dir in "${ALLOWED_DIRS[@]}"; do
+for dir in ${ALLOWED_DIRS[@]+"${ALLOWED_DIRS[@]}"}; do
   if [[ "$CWD" == "$dir" || "$CWD" == "$dir/"* ]]; then
     CWD_ARGS+=(--add-dirs="$dir")
     break
@@ -118,6 +124,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs-ro="/Applications/Google Chrome.app"
   --add-dirs-ro="/Library/Developer/CommandLineTools"
   --add-dirs="/Users/henrste/Library/Caches/ms-playwright"
+  ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"}
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
   --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY${extra_env_pass:+,$extra_env_pass}
 )
