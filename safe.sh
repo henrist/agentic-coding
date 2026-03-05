@@ -67,6 +67,22 @@ sys.stdout.write(''.join(out))
 fi
 export AWS_CONFIG_FILE="$SANDBOX_AWS_CONFIG"
 
+# Read extra env-pass vars from config.toml
+extra_env_pass=$(python3 -c "
+import sys
+try:
+    import tomllib
+except ImportError:
+    sys.exit(0)
+try:
+    with open(sys.argv[1], 'rb') as f:
+        envs = tomllib.load(f).get('sandbox', {}).get('env-pass', [])
+    if envs:
+        print(','.join(envs))
+except Exception:
+    pass
+" "$SCRIPT_DIR/config.toml" 2>/dev/null || true)
+
 # Allowed project dirs — added read-write only when cwd is inside one
 ALLOWED_DIRS=(
   "/Users/henrste/Code/entailor"
@@ -103,7 +119,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs-ro="/Library/Developer/CommandLineTools"
   --add-dirs="/Users/henrste/Library/Caches/ms-playwright"
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
-  --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY
+  --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY${extra_env_pass:+,$extra_env_pass}
 )
 
 if [[ "$POLICY_ONLY" == true ]]; then

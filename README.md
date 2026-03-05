@@ -76,6 +76,13 @@ aws-profiles = ["dev", "staging"]
 Listed AWS profiles are auto-approved without prompting, including sensitive commands.
 The server prints active auto-approved profiles on startup.
 
+Extra environment variables can be passed into the sandbox via `config.toml`:
+
+```toml
+[sandbox]
+env-pass = ["OPENCODE_EXPERIMENTAL_LSP_TY"]
+```
+
 ### GitHub CLI
 
 ```bash
