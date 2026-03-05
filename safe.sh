@@ -106,27 +106,9 @@ for dir in ${ALLOWED_DIRS[@]+"${ALLOWED_DIRS[@]}"}; do
 done
 
 SAFEHOUSE_ARGS=(
-  --add-dirs="/Users/henrste/Code/henrist/agentic-coding"
-  --add-dirs="/Users/henrste/.claude"
-  --add-dirs="/Users/henrste/.ansible"
-  --add-dirs="/Users/henrste/.openpeon"
-  --add-dirs="/Users/henrste/.cdk"
-  --add-dirs-ro="/opt/homebrew/opt/peon-ping"
-  --append-profile="$SCRIPT_DIR/profiles/posix-ipc.sb"
-  --append-profile="$SCRIPT_DIR/profiles/audio.sb"
-  --append-profile="$SCRIPT_DIR/profiles/notifications.sb"
-  --append-profile="$SCRIPT_DIR/profiles/chromium.sb"
-  --enable=clipboard,macos-gui,electron
-  ${CWD_ARGS[@]+"${CWD_ARGS[@]}"}
-  --add-dirs-ro="/Users/henrste/.gitignore"
-  --add-dirs-ro="/Users/henrste/.config/gh"
-  --add-dirs-ro="/Users/henrste/.aws/config"
-  --add-dirs-ro="/Applications/Google Chrome.app"
-  --add-dirs-ro="/Library/Developer/CommandLineTools"
-  --add-dirs="/Users/henrste/Library/Caches/ms-playwright"
   ${EXTRA_DIRS[@]+"${EXTRA_DIRS[@]}"}
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
-  --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY${extra_env_pass:+,$extra_env_pass}
+  --env-pass=${extra_env_pass:-PATH,TERM}
 )
 
 if [[ "$POLICY_ONLY" == true ]]; then
