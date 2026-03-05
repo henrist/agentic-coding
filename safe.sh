@@ -100,6 +100,7 @@ SAFEHOUSE_ARGS=(
   --add-dirs-ro="/Users/henrste/.config/gh"
   --add-dirs-ro="/Users/henrste/.aws/config"
   --add-dirs-ro="/Applications/Google Chrome.app"
+  --add-dirs-ro="/Library/Developer/CommandLineTools"
   --add-dirs="/Users/henrste/Library/Caches/ms-playwright"
   ${AZURE_ARGS[@]+"${AZURE_ARGS[@]}"}
   --env-pass=PATH,TERM,TERM_PROGRAM,GIT_CONFIG_COUNT,GIT_CONFIG_KEY_0,GIT_CONFIG_VALUE_0,GIT_CONFIG_KEY_1,GIT_CONFIG_VALUE_1,AWS_CONFIG_FILE,EXA_API_KEY
