@@ -51,13 +51,27 @@ export GIT_CONFIG_KEY_1="credential.helper"
 export GIT_CONFIG_VALUE_1="$SCRIPT_DIR/bin/git-credential-helper"
 
 # Generate sandbox AWS config with credential_process per profile (for SDK credential resolution)
+# Strip SSO fields — credential_process handles auth; SSO fields cause boto3 to attempt SSO
+# token resolution (which fails in sandbox since ~/.aws/sso/cache is inaccessible).
 SANDBOX_AWS_CONFIG="$SCRIPT_DIR/.aws-config-sandbox"
 if [[ "$POLICY_ONLY" != true && -f "$HOME/.aws/config" ]]; then
   python3 -c "
 import re, sys
 script_dir = sys.argv[1]
+sso_keys = {'sso_session', 'sso_account_id', 'sso_role_name', 'sso_start_url', 'sso_region'}
 out = []
+skip_section = False
 for line in open(sys.argv[2]):
+    if re.match(r'^\[sso-session\s', line):
+        skip_section = True
+        continue
+    if line.startswith('['):
+        skip_section = False
+    if skip_section:
+        continue
+    key = line.split('=')[0].strip().lower() if '=' in line else ''
+    if key in sso_keys:
+        continue
     out.append(line)
     m = re.match(r'^\[profile\s+(\S+)\]', line) or re.match(r'^\[(default)\]', line)
     if m:
