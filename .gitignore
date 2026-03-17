@@ -8,3 +8,4 @@ __pycache__/
 session-*.md
 .aws-config-sandbox
 config.toml
+.approvals.toml
