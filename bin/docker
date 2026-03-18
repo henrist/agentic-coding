@@ -1,0 +1,34 @@
+#!/bin/bash
+set -eu
+
+# docker wrapper that gates Docker access through credential server.
+# The real Docker socket is never accessible in the sandbox - access is
+# proxied through the credential server's docker proxy socket.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+# Find real docker binary (skip ourselves)
+REAL_DOCKER=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/docker" ]]; then
+        REAL_DOCKER="$dir/docker"
+        break
+    fi
+done
+
+if [[ -z "$REAL_DOCKER" ]]; then
+    echo -e "\033[31mError: docker not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
+    exit 1
+fi
+
+# Request approval from credential server
+APPROVED=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" '{"type":"docker"}' approved) || true
+
+if [[ "$APPROVED" == "yes" ]]; then
+    exec "$REAL_DOCKER" "$@"
+else
+    echo -e "\033[33mDocker access denied\033[0m" >&2
+    exit 1
+fi

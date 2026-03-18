@@ -15,6 +15,7 @@ bin/gh                # gh wrapper (runs inside sandbox)
 bin/aws               # aws wrapper (runs inside sandbox)
 bin/az                # az wrapper (runs inside sandbox)
 bin/ssh               # ssh wrapper — gates SSH agent access (runs inside sandbox)
+bin/docker            # docker wrapper -- gates access via socket proxy (runs inside sandbox)
 bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
 ```
@@ -74,18 +75,22 @@ Request:  {"type": "gh"}\n
 Request:  {"type": "aws", "profile": "my-profile"}\n
 Request:  {"type": "az"}\n
 Request:  {"type": "ssh"}\n
+Request:  {"type": "docker"}\n
 Response: {"ok": true, "token": "gho_..."}\n
 Response: {"ok": true, "access_key_id": "...", "secret_access_key": "...", "session_token": "..."}\n
 Response: {"ok": false}\n
 ```
 
-Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, or `"ssh"`.
+Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, `"ssh"`, or `"docker"`.
 Approving one credential doesn't approve others.
 
 Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `p`=pattern+reads, `a`=all), then duration for r/p/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
 
 By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
 Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
+
+Docker reads (`docker ps`, `docker images`, etc.) are auto-approved by default.
+Disable with `--no-auto-docker-reads`.
 
 ### Adding new credential types
 
@@ -97,6 +102,10 @@ Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
 Note: `az` is approval-only (no credential injection) — it reads tokens from `~/.azure` directly.
 `ssh` is approval-only — it gates access to `SSH_AUTH_SOCK` (the SSH agent socket).
 The wrapper strips `SSH_AUTH_SOCK` by default and restores it only if approved.
+`docker` is approval-only with socket proxy -- the real Docker socket (`/var/run/docker.sock`)
+is never mounted in the sandbox. The credential server creates a proxy socket
+(`.docker-proxy.sock`) and only forwards connections from approved processes.
+This is a hard security boundary, not just a PATH-based gate.
 
 ## Security model
 

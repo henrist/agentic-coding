@@ -50,6 +50,9 @@ export GIT_CONFIG_VALUE_0=""
 export GIT_CONFIG_KEY_1="credential.helper"
 export GIT_CONFIG_VALUE_1="$SCRIPT_DIR/bin/git-credential-helper"
 
+# Docker: route through credential server's proxy socket (real socket never mounted)
+export DOCKER_HOST="unix://$SCRIPT_DIR/.docker-proxy.sock"
+
 # Generate sandbox AWS config with credential_process per profile (for SDK credential resolution)
 # Strip SSO fields — credential_process handles auth; SSO fields cause boto3 to attempt SSO
 # token resolution (which fails in sandbox since ~/.aws/sso/cache is inaccessible).
