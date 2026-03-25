@@ -6,7 +6,7 @@ My personal setup for sandboxed agentic coding — sandbox tooling, credential i
 
 - `rules.md` — shared agent rules referenced by multiple AI coding tools
 - `safe.sh` + `credential-server` — sandboxed execution with on-demand credential injection
-- `bin/` — CLI wrappers for credential-aware tools inside the sandbox
+- `bin/` — CLI wrappers (`gh`, `aws`, `az`, `ssh`, `docker`, `git-credential-helper`) for credential-aware tools inside the sandbox
 
 ## Rules
 
@@ -103,6 +103,27 @@ outside the sandbox and injects them as env vars:
 ```
 
 Requires an active SSO session (`aws sso login --profile <profile>` outside the sandbox).
+
+### Docker
+
+Docker access is proxied through the credential server — the real Docker socket is never mounted
+inside the sandbox. The server creates `.docker-proxy.sock` and forwards approved requests to the
+host Docker daemon.
+
+```bash
+./safe.sh docker ps
+./safe.sh docker build -t myapp .
+```
+
+### SSH
+
+The SSH wrapper strips `SSH_AUTH_SOCK` by default. Agent access is only restored if approved
+through the credential server, preventing unauthorized key signing.
+
+### Approval persistence
+
+Active approvals are persisted to `.approvals.toml` and restored on server restart.
+Expired and stale entries (dead PIDs) are pruned automatically on load.
 
 ### How it works
 
