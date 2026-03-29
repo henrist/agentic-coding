@@ -1,0 +1,60 @@
+#!/bin/bash
+set -eu
+
+# keyring CLI bridge for uv → credential-server.
+# uv calls: keyring get <service> <username>
+#        or: keyring get --mode creds <service>
+# We extract hostname, request netrc creds from credential-server, print result.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+# Parse args
+mode=""
+service=""
+
+if [[ "${1:-}" != "get" ]]; then
+    echo "unsupported keyring command: ${1:-}" >&2
+    exit 1
+fi
+shift
+
+# Collect positional args, extract --mode flag from any position
+positional=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --mode) mode="$2"; shift 2 ;;
+        *)      positional+=("$1"); shift ;;
+    esac
+done
+
+service="${positional[0]:-}"
+
+if [[ -z "$service" ]]; then
+    echo "keyring: missing service argument" >&2
+    exit 1
+fi
+
+# Extract hostname from service (could be full URL or bare host)
+host="$service"
+if [[ "$service" == http://* || "$service" == https://* ]]; then
+    # Strip scheme and path: https://pypi.fury.io/org/ → pypi.fury.io
+    host="${service#*://}"
+    host="${host%%/*}"
+    # Strip user@ prefix if present
+    host="${host##*@}"
+    # Strip port
+    host="${host%%:*}"
+fi
+
+# Request credentials from credential-server
+creds=$("$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" "{\"type\":\"netrc\",\"machine\":\"$host\"}" netrc) || exit 1
+
+login=$(echo "$creds" | head -1)
+password=$(echo "$creds" | tail -1)
+
+if [[ "$mode" == "creds" ]]; then
+    printf '%s\n%s\n' "$login" "$password"
+else
+    printf '%s\n' "$password"
+fi

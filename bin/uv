@@ -1,0 +1,25 @@
+#!/bin/bash
+set -eu
+
+# uv wrapper that enables keyring auth via credential-server.
+# Credentials are fetched lazily - only when uv hits a 401 on a private index.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Find real uv binary (skip ourselves)
+REAL_UV=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/uv" ]]; then
+        REAL_UV="$dir/uv"
+        break
+    fi
+done
+
+if [[ -z "$REAL_UV" ]]; then
+    echo -e "\033[31mError: uv not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
+    exit 1
+fi
+
+export UV_KEYRING_PROVIDER=subprocess
+exec "$REAL_UV" "$@"

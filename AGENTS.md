@@ -16,6 +16,8 @@ bin/aws               # aws wrapper (runs inside sandbox)
 bin/az                # az wrapper (runs inside sandbox)
 bin/ssh               # ssh wrapper — gates SSH agent access (runs inside sandbox)
 bin/docker            # docker wrapper -- gates access via socket proxy (runs inside sandbox)
+bin/uv                # uv wrapper -- enables keyring auth via credential-server (runs inside sandbox)
+bin/keyring           # keyring CLI bridge for uv netrc credentials (runs inside sandbox)
 bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
 ```
@@ -76,12 +78,13 @@ Request:  {"type": "aws", "profile": "my-profile"}\n
 Request:  {"type": "az"}\n
 Request:  {"type": "ssh"}\n
 Request:  {"type": "docker"}\n
+Request:  {"type": "netrc", "machine": "pypi.fury.io"}\n
 Response: {"ok": true, "token": "gho_..."}\n
 Response: {"ok": true, "access_key_id": "...", "secret_access_key": "...", "session_token": "..."}\n
 Response: {"ok": false}\n
 ```
 
-Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, `"ssh"`, or `"docker"`.
+Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, `"ssh"`, `"docker"`, or `"netrc:<machine>"`.
 Approving one credential doesn't approve others.
 
 Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `p`=pattern+reads, `a`=all), then duration for r/p/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
@@ -91,6 +94,9 @@ Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
 
 Docker reads (`docker ps`, `docker images`, etc.) are auto-approved by default.
 Disable with `--no-auto-docker-reads`.
+
+Netrc credential requests (for `uv` private indexes) are auto-approved by default.
+Disable with `--no-auto-netrc`.
 
 ### Adding new credential types
 
