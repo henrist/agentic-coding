@@ -1,0 +1,24 @@
+#!/bin/bash
+set -eu
+
+# pip wrapper that enables keyring auth via credential-server.
+# Credentials are fetched lazily - only when pip hits a 401 on a private index.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Find real pip binary (skip ourselves)
+REAL_PIP=""
+IFS=: read -ra path_dirs <<< "$PATH"
+for dir in "${path_dirs[@]}"; do
+    if [[ "$dir" != "$SCRIPT_DIR" && -x "$dir/pip" ]]; then
+        REAL_PIP="$dir/pip"
+        break
+    fi
+done
+
+if [[ -z "$REAL_PIP" ]]; then
+    echo -e "\033[31mError: pip not found in PATH (looked everywhere except $SCRIPT_DIR)\033[0m" >&2
+    exit 1
+fi
+
+exec "$REAL_PIP" --keyring-provider subprocess "$@"
