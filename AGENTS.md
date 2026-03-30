@@ -146,3 +146,14 @@ SAFEHOUSE_POLICY=1 ./safe.sh true
 
 The policy is a macOS sandbox profile (Seatbelt `.sb` format) showing
 all allow/deny rules. Use this to verify what the sandbox permits.
+
+### Debugging sandbox denials
+
+When something fails inside the sandbox, check macOS unified log for Seatbelt violations:
+
+```bash
+/usr/bin/log show --last 15m --predicate 'process == "sandboxd"' --info --debug 2>&1 | grep -i "deny\|violat"
+```
+
+Each violation shows the process, operation, and target. Fix by adding
+allow rules to the appropriate profile in `profiles/`.
