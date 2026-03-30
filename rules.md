@@ -27,6 +27,8 @@ When creating a Git commit:
 
 Avoid amending commits that is pushed to the remote. Always check this before considering to amend.
 
+Don't `git pull --rebase` when the branch has merge commits — it replays merged-in commits on top, breaking history. Use `git pull` (merge) instead.
+
 ## GitHub
 
 - Prefer the GitHub CLI (`gh`) to interact with GitHub for our own repositories. Use https for public stuff.
