@@ -1,0 +1,22 @@
+#!/bin/bash
+# Wrapper for `open` that forwards a single http(s) URL to credential-server,
+# which runs /usr/bin/open outside the sandbox. Sandbox itself blocks lsd.*,
+# so /usr/bin/open inside fails — this is the only way out.
+set -eu
+
+if [[ $# -ne 1 ]]; then
+  echo "open: wrapper accepts exactly one https://... or http://... URL" >&2
+  exit 1
+fi
+
+url="$1"
+if [[ "$url" != http://* && "$url" != https://* ]]; then
+  echo "open: only http:// and https:// URLs allowed inside sandbox (got: $url)" >&2
+  exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOCKET_PATH="${SCRIPT_DIR%/bin}/.credential-server.sock"
+
+url_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$url")
+"$SCRIPT_DIR/_credential-request" "$SOCKET_PATH" "{\"type\":\"open\",\"url\":$url_json}" approved >/dev/null
