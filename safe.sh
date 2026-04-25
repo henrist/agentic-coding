@@ -13,7 +13,7 @@ choice=""
 if [[ "${SAFEHOUSE_POLICY:-}" == "1" ]]; then
   POLICY_ONLY=true
 else
-  printf "Run %s [s]andboxed  [u]nsandboxed  [o]ptions  [p]olicy? " "$cmd"
+  printf "Run %s [s]andboxed  [u]nsandboxed  [o]ptions  [p]olicy  [e]nv-diff? " "$cmd"
   read -r -n1 choice
   echo
 
@@ -22,6 +22,26 @@ else
   fi
   if [[ "$choice" == "p" || "$choice" == "P" ]]; then
     POLICY_ONLY=true
+  fi
+  if [[ "$choice" == "e" || "$choice" == "E" ]]; then
+    # Print env var names from current shell that would be stripped by the sandbox.
+    # Names only — values may contain secrets.
+    extra_env_pass=$(python3 -c "
+import sys
+try:
+    import tomllib
+    with open(sys.argv[1], 'rb') as f:
+        envs = tomllib.load(f).get('sandbox', {}).get('env-pass', [])
+    print(','.join(envs))
+except Exception:
+    pass
+" "$SCRIPT_DIR/config.toml" 2>/dev/null)
+    passed="${extra_env_pass:-PATH,TERM}"
+    echo "Env vars in current shell NOT passed to sandbox:"
+    comm -23 \
+      <(env | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' | sort -u) \
+      <(echo "$passed" | tr ',' '\n' | sort -u)
+    exit 0
   fi
 fi
 
