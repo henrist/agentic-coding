@@ -21,6 +21,7 @@ bin/pip               # pip wrapper -- enables keyring auth via credential-serve
 bin/keyring           # keyring CLI bridge for uv/pip netrc credentials (runs inside sandbox)
 bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
+remote/aws            # aws wrapper for a remote host (vendored into hsw-iac)
 ```
 
 ## Workflow
@@ -80,6 +81,7 @@ Request:  {"type": "az"}\n
 Request:  {"type": "ssh"}\n
 Request:  {"type": "docker"}\n
 Request:  {"type": "netrc", "machine": "pypi.fury.io"}\n
+Request:  {"type": "aws", "profile": "p", "origin": "remote", "host": "...", "cmd": "...", "cwd": "..."}\n
 Response: {"ok": true, "token": "gho_..."}\n
 Response: {"ok": true, "access_key_id": "...", "secret_access_key": "...", "session_token": "..."}\n
 Response: {"ok": false}\n
@@ -98,6 +100,24 @@ Disable with `--no-auto-docker-reads`.
 
 Netrc credential requests (for `uv` private indexes) are auto-approved by default.
 Disable with `--no-auto-netrc`.
+
+### Remote mode
+
+A remote host (e.g. `coding26`) can request AWS credentials by SSH-forwarding
+`.credential-server.sock` to itself (`ssh -R`) and running the credential-aware
+`aws` wrapper `remote/aws` there. Over the forwarded socket the server's process
+introspection only sees the local `ssh` client, so the wrapper self-reports
+its context with extra request fields:
+
+- `origin: "remote"` switches the server to remote mode.
+- `host` scopes approvals to a synthetic `(remote:<host>, cred_key)` key
+  (sanitized to `[A-Za-z0-9._-]`, capped at 64 chars).
+- `cmd` / `cwd` are shown in the approval prompt and audit log; `cmd` drives
+  read-only / sensitive classification.
+
+Remote mode serves `aws` only. Remote approvals are not persisted to
+`.approvals.toml`; an `r`/`p`/`a` "session" approval lasts until the server
+restarts. The two-keypress approval UX is otherwise identical to local.
 
 ### Adding new credential types
 
@@ -124,6 +144,13 @@ This is a hard security boundary, not just a PATH-based gate.
 - Keychain, SSO cache, and credential files NOT accessible from sandbox.
 - `aws` wrapper strips `--profile` to avoid SSO lookup in sandbox; extracts
   region/output from config and injects as `AWS_DEFAULT_REGION`/`AWS_DEFAULT_OUTPUT`.
+- Remote mode: the server can't introspect a remote requester's process, so it
+  trusts the wrapper's self-reported `cmd`/`cwd`/`host`. These are advisory
+  (prompt display, audit log, read/sensitive classification) — they never
+  narrow the returned credentials. Returned STS creds are full creds for the
+  profile, so a remote `r`/`a`-mode approval means "this host may do anything
+  with this profile until it expires". The real boundary is who can reach the
+  forwarded socket.
 
 ## Sandbox (safe.sh)
 

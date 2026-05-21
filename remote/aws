@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""aws wrapper — fetches temporary AWS credentials on demand for a remote host.
+
+Mirrors agentic-coding/bin/aws, but for a remote host. The credential server
+runs on a Mac; its Unix socket is forwarded to the remote host over `ssh -R`.
+This wrapper requests short-lived STS credentials over that socket, injects
+them into the environment, and execs the real aws. Credentials only ever live
+in this process plus the real aws process — never on disk, never in a parent
+env. Without the tunnel up it fails closed (an unauthenticated aws is useless).
+
+Canonical source: agentic-coding/remote/aws. A byte-identical copy is vendored
+into hsw-iac at servers/coding26/aws-wrapper and deployed to coding26's
+~/.local/bin/aws by ansible/coding26.yml — keep the two in sync. The real AWS
+CLI v2 is expected at /usr/local/bin/aws.
+"""
+import configparser
+import json
+import os
+import shlex
+import socket
+import stat
+import sys
+import time
+
+REAL_AWS = "/usr/local/bin/aws"
+SOCKET_PATH = os.environ.get(
+    "CREDENTIAL_SOCKET", f"/run/user/{os.getuid()}/credential-server.sock"
+)
+SOCKET_WAIT = 10        # seconds to wait for the forwarded socket to appear
+REQUEST_TIMEOUT = 120
+
+RED = "\033[31m"
+RESET = "\033[0m"
+
+
+def fail(message):
+    """Print an error and exit non-zero — never run aws unauthenticated."""
+    sys.stderr.write(f"{RED}{message}{RESET}\n")
+    sys.exit(1)
+
+
+def extract_profile(argv):
+    """Return (profile, args_without_profile). Mirrors bin/aws."""
+    profile = ""
+    args = []
+    skip_next = False
+    for arg in argv:
+        if skip_next:
+            profile = arg
+            skip_next = False
+        elif arg == "--profile":
+            skip_next = True
+        elif arg.startswith("--profile="):
+            profile = arg[len("--profile="):]
+        else:
+            args.append(arg)
+    if not profile:
+        profile = os.environ.get("AWS_PROFILE", "")
+    return profile, args
+
+
+def profile_region(profile):
+    """Read region for profile from ~/.aws/config. Returns region or None."""
+    config_path = os.environ.get(
+        "AWS_CONFIG_FILE", os.path.expanduser("~/.aws/config")
+    )
+    if not os.path.isfile(config_path):
+        return None
+    parser = configparser.ConfigParser()
+    try:
+        parser.read(config_path)
+    except configparser.Error:
+        return None
+    return parser.get(f"profile {profile}", "region", fallback=None)
+
+
+def is_socket(path):
+    """Return True if path exists and is a Unix socket."""
+    try:
+        return stat.S_ISSOCK(os.stat(path).st_mode)
+    except OSError:
+        return False
+
+
+def request_credentials(payload):
+    """Ask the credential server for creds. Returns response dict or None."""
+    waited = 0
+    while not is_socket(SOCKET_PATH) and waited < SOCKET_WAIT:
+        time.sleep(1)
+        waited += 1
+    if not is_socket(SOCKET_PATH):
+        fail("credential tunnel not up — run `coding26-cred` on your Mac")
+
+    for attempt in range(3):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(REQUEST_TIMEOUT)
+        try:
+            s.connect(SOCKET_PATH)
+            s.sendall(json.dumps(payload).encode() + b"\n")
+            data = s.recv(8192).decode().strip()
+            if not data:
+                raise ConnectionResetError("empty response")
+            return json.loads(data)
+        except (ConnectionRefusedError, FileNotFoundError,
+                BrokenPipeError, ConnectionResetError):
+            # Server may have restarted — retry a couple of times.
+            if attempt < 2:
+                time.sleep(1)
+                continue
+            return None
+        except (socket.timeout, json.JSONDecodeError, OSError):
+            return None
+        finally:
+            s.close()
+    return None
+
+
+def main():
+    os.environ["AWS_PAGER"] = ""
+
+    if not os.access(REAL_AWS, os.X_OK):
+        fail(f"real aws not found at {REAL_AWS}")
+
+    argv = sys.argv[1:]
+    profile, args = extract_profile(argv)
+
+    # No profile — nothing to inject; run aws unchanged.
+    if not profile:
+        os.execv(REAL_AWS, [REAL_AWS] + argv)
+
+    response = request_credentials({
+        "type": "aws",
+        "profile": profile,
+        "origin": "remote",
+        "host": socket.gethostname(),
+        "cmd": "aws " + shlex.join(argv),
+        "cwd": os.getcwd(),
+    })
+
+    if response is None:
+        fail("credential request failed — is the credential server running?")
+    if not response.get("ok"):
+        fail(f"credential request denied for profile {profile}")
+
+    access_key = response.get("access_key_id")
+    secret_key = response.get("secret_access_key")
+    if not (access_key and secret_key):
+        fail("credential response missing keys")
+
+    os.environ["AWS_ACCESS_KEY_ID"] = access_key
+    os.environ["AWS_SECRET_ACCESS_KEY"] = secret_key
+    os.environ["AWS_SESSION_TOKEN"] = response.get("session_token", "")
+
+    # `--profile` is stripped and AWS_PROFILE dropped: with creds in the env,
+    # either would make aws resolve that profile (which has no credential
+    # source in our config). Region comes from the profile's config entry.
+    os.environ.pop("AWS_PROFILE", None)
+    if "AWS_DEFAULT_REGION" not in os.environ:
+        region = profile_region(profile)
+        if region:
+            os.environ["AWS_DEFAULT_REGION"] = region
+
+    os.execv(REAL_AWS, [REAL_AWS] + args)
+
+
+if __name__ == "__main__":
+    main()
