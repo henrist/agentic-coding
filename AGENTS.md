@@ -21,7 +21,8 @@ bin/pip               # pip wrapper -- enables keyring auth via credential-serve
 bin/keyring           # keyring CLI bridge for uv/pip netrc credentials (runs inside sandbox)
 bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
-remote/aws            # aws wrapper for a remote host (vendored into hsw-iac)
+remote/aws            # aws CLI wrapper for a remote host (vendored into hsw-iac)
+remote/aws-credential-process  # credential_process helper for remote SDKs (vendored)
 ```
 
 ## Workflow
