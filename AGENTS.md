@@ -21,8 +21,8 @@ bin/pip               # pip wrapper -- enables keyring auth via credential-serve
 bin/keyring           # keyring CLI bridge for uv/pip netrc credentials (runs inside sandbox)
 bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
-remote/aws            # aws CLI wrapper for a remote host (vendored into hsw-iac)
-remote/aws-credential-process  # credential_process helper for remote SDKs (vendored)
+remote/aws            # aws CLI wrapper for a remote host (vendored downstream)
+remote/aws-credential-process  # credential_process helper for remote SDKs (vendored downstream)
 ```
 
 ## Workflow
@@ -104,7 +104,7 @@ Disable with `--no-auto-netrc`.
 
 ### Remote mode
 
-A remote host (e.g. `coding26`) can request AWS credentials by SSH-forwarding
+A remote host can request AWS credentials by SSH-forwarding
 `.credential-server.sock` to itself (`ssh -R`) and running the credential-aware
 `aws` wrapper `remote/aws` there. Over the forwarded socket the server's process
 introspection only sees the local `ssh` client, so the wrapper self-reports
