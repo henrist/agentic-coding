@@ -1,9 +1,31 @@
 - In all interactions and commit messages, be concise and sacrifice grammar for the sake of concision.
 - Less is more — prefer simple, readable code; avoid clever code and accidental complexity.
 - Tell me if I'm about to add accidental complexity.
+- Tell me if I'm about to add comments that don't pull their weight.
 - Don't accidentally introduce CRLF endings.
 - Always use pnpx instead of npx.
 - Bash scripts: Reserve uppercase for system and environment variables.
+
+## Code comments
+
+Default: write zero comments. Comments rot, blur diffs, and add review load. The code is the source of truth — if the code can express it, the comment shouldn't.
+
+A comment may stay only if it captures something the code cannot:
+
+- A non-obvious WHY: hidden constraint, subtle invariant, workaround for a specific bug, perf trick that reads as wrong.
+- A footgun warning.
+- Required by language/tooling: public-API docstrings of a library, license headers, type-system annotations.
+
+Never write:
+
+- Restatements of what the code already says (`// increment counter`, `# loop over users`).
+- Section banners or scaffolding headers (`// --- Setup ---`, `# Helpers`).
+- Narration of the change or task (`// added retry`, `// new function`, `// refactored from X`).
+- References to a PR, ticket, person, or review (`// per review`, `// fix for #123`, `// used by FooFlow`) — that belongs in the commit message or PR description.
+- TODO / "future work" / hedging comments unless paired with a concrete owner or ticket.
+- Multi-line docstrings on internal functions — the signature and name should carry it.
+
+When unsure, delete it.
 
 ## Plans
 
