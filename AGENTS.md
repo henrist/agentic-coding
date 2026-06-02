@@ -91,7 +91,7 @@ Response: {"ok": false}\n
 Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, `"ssh"`, `"docker"`, or `"netrc:<machine>"`.
 Approving one credential doesn't approve others.
 
-Two-keypress approval: first select mode (`Enter`=once, `d`=deny, `r`=reads, `p`=pattern+reads, `a`=all), then duration for r/p/a (`1`=1min, `5`=5min, `s`=session). Only one approval active per context.
+Single-screen approval form: hotkeys toggle each row, `Enter` confirms (defaults to once). Scope `o`=once/`r`=reads/`p`=pattern/`a`=all; duration for r/p/a `1`/`5`/`s` (default 5min); `g` cycles pattern granularity; `t` toggles include-sensitive (default on when the command is itself sensitive); `d`/`Esc`=deny. Only one approval active per context.
 
 By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
 Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
@@ -118,7 +118,7 @@ its context with extra request fields:
 
 Remote mode serves `aws` only. Remote approvals are not persisted to
 `.approvals.toml`; an `r`/`p`/`a` "session" approval lasts until the server
-restarts. The two-keypress approval UX is otherwise identical to local.
+restarts. The approval form UX is otherwise identical to local.
 
 ### Adding new credential types
 

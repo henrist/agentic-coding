@@ -45,19 +45,15 @@ Start the credential server in a separate terminal:
 ./credential-server
 ```
 
-Then use `gh` / `aws` inside the sandbox. Each credential request prompts with a two-keypress approval:
+Then use `gh` / `aws` inside the sandbox. Each credential request shows a single-screen form; hotkeys toggle each row in place and **Enter** confirms. It defaults to `once`, so a bare Enter allows the single request.
 
-**Step 1 — mode:**
-- **Enter** — allow once
+- **scope** — **o** once · **r** reads (read-only commands) · **p** pattern (commands matching the chosen pattern) · **a** all
+- **duration** (for r/p/a) — **1** 1min · **5** 5min · **s** session (until sandbox exits); defaults to 5min
+- **pattern** (for p with >1 option) — **g** cycles granularity (e.g. `aws s3 cp` vs `aws s3` vs exact)
+- **t** — include sensitive (defaults on when the displayed command is itself sensitive)
 - **d** / **Esc** — deny
-- **r** — reads (auto-approve read-only commands)
-- **p** — pattern+reads (auto-approve reads + writes matching command pattern)
-- **a** — all (auto-approve everything)
 
-**Step 2 — duration (for r/p/a):**
-- **1** — 1 minute
-- **5** — 5 minutes
-- **s** — session (until sandbox exits)
+Sensitive commands (secretsmanager, ssm, kms, keyvault) are gated separately: a persistent approval without **include sensitive** still prompts once the first time a sensitive command hits it. Turn the toggle on to pre-consent and skip that later prompt.
 
 Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:dev` doesn't approve `aws:admin`; SSH is scoped per-host, so each `ssh <host>` is approved independently). Only one approval is active per context at a time — selecting a new mode replaces the previous one.
 
