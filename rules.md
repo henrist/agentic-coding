@@ -1,6 +1,7 @@
 - In all interactions and commit messages, be concise and sacrifice grammar for the sake of concision.
 - Less is more — prefer simple, readable code; avoid clever code and accidental complexity.
 - Tell me if I'm about to add accidental complexity.
+- When evolving code, aim for how we'd build it from scratch today — reduce tech debt, don't layer workarounds on it.
 - Tell me if I'm about to add comments that don't pull their weight.
 - Don't accidentally introduce CRLF endings.
 - Always use pnpx instead of npx.
