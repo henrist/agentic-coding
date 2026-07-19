@@ -67,6 +67,8 @@ minimumReleaseAge: 4320
 
 `minimumReleaseAge: 4320` ensures packages must be published for at least 3 days before they can be installed, protecting against supply chain attacks.
 
+When pnpm flags dependency build scripts, mark each package as denied unless its build script is actually required. Use the config for the pnpm version in use (`allowBuilds: <pkg>: false` in v11, `ignoredBuiltDependencies` in v10). Never `pnpm approve-builds --all`.
+
 ## Node.js
 
 Assume Node.js 24+ with native TypeScript execution (strip types) unless the project indicates otherwise. No need for ts-node or tsx as a dev dependency for running scripts.
