@@ -2,9 +2,8 @@
 - Less is more — prefer simple, readable code; avoid clever code and accidental complexity.
 - Tell me if I'm about to add accidental complexity.
 - When evolving code, aim for how we'd build it from scratch today — reduce tech debt, don't layer workarounds on it.
-- Tell me if I'm about to add comments that don't pull their weight.
 - Don't accidentally introduce CRLF endings.
-- Always use pnpx instead of npx.
+- Always use pnpm dlx instead of npx.
 - Bash scripts: Reserve uppercase for system and environment variables.
 
 ## Code comments
@@ -31,7 +30,7 @@ When unsure, delete it.
 ## Plans
 
 - Avoid leaving out crucial details of the plan. Assume I will run the plan using cleaned context.
-- At the end of each plan, list unresolved questions. Ask about edge cases, error handling, and unclear requirements before proceeding.
+- List unresolved questions before the steps. Ask about edge cases, error handling, and unclear requirements before proceeding.
 - End every plan with a numbered list of concrete steps. This should be the last thing visible in the terminal.
 
 ## Git commits
@@ -49,7 +48,7 @@ Don't `git pull --rebase` on branches with merge commits — use `git pull` (mer
 
 ## GitHub
 
-- Prefer the GitHub CLI (`gh`) to interact with GitHub for our own repositories. Use https for public stuff.
+- Prefer the GitHub CLI (`gh`) to interact with GitHub for our own repositories.
 - Keep PR descriptions short and concise.
 
 ## GitHub Actions
