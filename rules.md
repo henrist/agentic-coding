@@ -41,6 +41,7 @@ When creating a Git commit:
 - Capitalize first letter of commit title, unless using conventional commit prefixes (fix:, feat:, etc.) or starting with an identifier that is normally lowercase.
 - Message body should focus on *why* the change is made — clarity and context. Skip the body unless it adds value.
 - Look through recent commits and prefer consistency.
+- Never `git add -A` / `git add .` — stage explicit paths only. The working tree may hold unrelated WIP (e.g. from a concurrent session). Verify staged files with `git status` before committing.
 
 Avoid amending commits already pushed to the remote — check first.
 
