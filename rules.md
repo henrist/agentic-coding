@@ -45,7 +45,7 @@ When creating a Git commit:
 
 Avoid amending commits already pushed to the remote — check first.
 
-Don't `git pull --rebase` on branches with merge commits — use `git pull` (merge).
+`git pull --rebase` by default. If the branch contains merge commits (e.g. PR branch with main merged in), use `git pull` (merge) — rebasing would recreate the merged-in commits.
 
 ## GitHub
 
