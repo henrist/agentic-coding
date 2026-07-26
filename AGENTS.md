@@ -95,6 +95,7 @@ Single-screen approval form: hotkeys toggle each row, `Enter` confirms (defaults
 
 By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
 Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
+Repos in `main-push-repos` under `[auto-approve]` in `config.toml` (as `owner/repo`, matched against the `origin` remote) also get main/master pushes auto-approved.
 
 Docker reads (`docker ps`, `docker images`, etc.) are auto-approved by default.
 Disable with `--no-auto-docker-reads`.

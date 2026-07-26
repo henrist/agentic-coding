@@ -67,10 +67,12 @@ Additional auto-approvals can be configured in `config.toml` (not committed):
 ```toml
 [auto-approve]
 aws-profiles = ["dev", "staging"]
+main-push-repos = ["myorg/myrepo"]
 ```
 
 Listed AWS profiles are auto-approved without prompting, including sensitive commands.
-The server prints active auto-approved profiles on startup.
+Repos listed in `main-push-repos` (matched against the `origin` remote) also get pushes
+to main/master auto-approved. The server prints active auto-approvals on startup.
 
 Extra sandbox settings can be configured in `config.toml`:
 
