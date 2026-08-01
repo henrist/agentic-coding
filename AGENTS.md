@@ -23,6 +23,7 @@ bin/git-credential-helper  # git credential helper (runs inside sandbox)
 bin/osascript         # osascript wrapper (neutered inside sandbox)
 remote/aws            # aws CLI wrapper for a remote host (vendored downstream)
 remote/aws-credential-process  # credential_process helper for remote SDKs (vendored downstream)
+remote/open-url       # URL opener for a remote host -- opens in the Mac browser (vendored downstream)
 ```
 
 ## Workflow
@@ -82,7 +83,9 @@ Request:  {"type": "az"}\n
 Request:  {"type": "ssh"}\n
 Request:  {"type": "docker"}\n
 Request:  {"type": "netrc", "machine": "pypi.fury.io"}\n
+Request:  {"type": "open", "url": "https://..."}\n
 Request:  {"type": "aws", "profile": "p", "origin": "remote", "host": "...", "cmd": "...", "cwd": "..."}\n
+Request:  {"type": "open", "url": "https://...", "origin": "remote", "host": "...", "cmd": "...", "cwd": "..."}\n
 Response: {"ok": true, "token": "gho_..."}\n
 Response: {"ok": true, "access_key_id": "...", "secret_access_key": "...", "session_token": "..."}\n
 Response: {"ok": false}\n
@@ -105,11 +108,11 @@ Disable with `--no-auto-netrc`.
 
 ### Remote mode
 
-A remote host can request AWS credentials by SSH-forwarding
+A remote host can request AWS credentials or a URL open by SSH-forwarding
 `.credential-server.sock` to itself (`ssh -R`) and running the credential-aware
-`aws` wrapper `remote/aws` there. Over the forwarded socket the server's process
-introspection only sees the local `ssh` client, so the wrapper self-reports
-its context with extra request fields:
+wrappers `remote/aws` / `remote/open-url` there. Over the forwarded socket the
+server's process introspection only sees the local `ssh` client, so the wrapper
+self-reports its context with extra request fields:
 
 - `origin: "remote"` switches the server to remote mode.
 - `host` scopes approvals to a synthetic `(remote:<host>, cred_key)` key
@@ -117,9 +120,18 @@ its context with extra request fields:
 - `cmd` / `cwd` are shown in the approval prompt and audit log; `cmd` drives
   read-only / sensitive classification.
 
-Remote mode serves `aws` only. Remote approvals are not persisted to
+Remote mode serves `aws` and `open` only. Remote approvals are not persisted to
 `.approvals.toml`; an `r`/`p`/`a` "session" approval lasts until the server
 restarts. The approval form UX is otherwise identical to local.
+
+Remote `open` is prompted per URL (`[Enter]` open / `[d]` deny) rather than
+auto-approved like a sandbox open — any process on the remote host can reach
+the forwarded socket. If the URL carries a loopback `redirect_uri`
+(`http://127.0.0.1:<port>/...`, i.e. an OAuth authorize URL), the server also
+runs `ssh -O forward -L <port>:127.0.0.1:<port> <host>` so the browser's
+callback reaches the listener on the remote host, and cancels it after
+`LOOPBACK_TUNNEL_TTL`. That needs the ssh ControlMaster for `<host>` to be up;
+otherwise the manual `ssh -L` command is printed.
 
 ### Adding new credential types
 
@@ -152,7 +164,9 @@ This is a hard security boundary, not just a PATH-based gate.
   narrow the returned credentials. Returned STS creds are full creds for the
   profile, so a remote `r`/`a`-mode approval means "this host may do anything
   with this profile until it expires". The real boundary is who can reach the
-  forwarded socket.
+  forwarded socket. Remote `open` takes the same trust: the self-reported host
+  is what the loopback `ssh -O forward` targets, so it is shown in the prompt
+  and only acted on after approval.
 
 ## Sandbox (safe.sh)
 

@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""URL opener for a remote host — opens the URL in the Mac's browser.
+
+Like agentic-coding/bin/open, but for a headless remote host that has the
+credential server's Unix socket forwarded in (e.g. via ssh RemoteForward).
+Point BROWSER at it (and install it as xdg-open) so anything that wants a
+browser — MCP OAuth flows, gh, agent CLIs — reaches the Mac instead of
+silently failing.
+
+Never fails silently: if the socket is down or the open is denied, the URL is
+printed to stderr and appended to the fallback log so it can still be opened by
+hand. Exits 0 either way — a non-zero exit makes some callers (Grok) report a
+browser failure without ever showing the URL.
+
+Canonical copy: agentic-coding/remote/open-url. Deployment repos vendor a
+byte-identical copy — keep them in sync.
+"""
+import json
+import os
+import socket
+import stat
+import sys
+import time
+
+SOCKET_PATH = os.environ.get(
+    "CREDENTIAL_SOCKET", f"/run/user/{os.getuid()}/credential-server.sock"
+)
+FALLBACK_LOG = os.path.expanduser(
+    os.environ.get("OPEN_URL_LOG", "~/.cache/open-url.log")
+)
+SOCKET_WAIT = 10        # seconds to wait for the forwarded socket to appear
+REQUEST_TIMEOUT = 120
+
+RED = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
+
+def log_fallback(url, reason):
+    """Print the URL and append it to the fallback log. Always exits 0."""
+    sys.stderr.write(f"{RED}open-url: {reason}{RESET}\n{url}\n")
+    try:
+        os.makedirs(os.path.dirname(FALLBACK_LOG), exist_ok=True)
+        with open(FALLBACK_LOG, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {url}\n")
+    except OSError:
+        pass
+    sys.exit(0)
+
+
+def is_socket(path):
+    """Return True if path exists and is a Unix socket."""
+    try:
+        return stat.S_ISSOCK(os.stat(path).st_mode)
+    except OSError:
+        return False
+
+
+def request_open(payload):
+    """Ask the credential server to open the URL. Returns response or None."""
+    waited = 0
+    while not is_socket(SOCKET_PATH) and waited < SOCKET_WAIT:
+        time.sleep(1)
+        waited += 1
+    if not is_socket(SOCKET_PATH):
+        return None
+
+    for attempt in range(3):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(REQUEST_TIMEOUT)
+        try:
+            s.connect(SOCKET_PATH)
+            s.sendall(json.dumps(payload).encode() + b"\n")
+            data = s.recv(8192).decode().strip()
+            if not data:
+                raise ConnectionResetError("empty response")
+            return json.loads(data)
+        except (ConnectionRefusedError, FileNotFoundError,
+                BrokenPipeError, ConnectionResetError):
+            # Server may have restarted — retry a couple of times.
+            if attempt < 2:
+                time.sleep(1)
+                continue
+            return None
+        except (socket.timeout, json.JSONDecodeError, OSError):
+            return None
+        finally:
+            s.close()
+    return None
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.stderr.write("usage: open-url <http(s)-url>\n")
+        sys.exit(1)
+
+    url = sys.argv[1]
+    if not url.startswith(("http://", "https://")):
+        sys.stderr.write(f"{RED}open-url: only http:// and https:// (got: {url}){RESET}\n")
+        sys.exit(1)
+
+    response = request_open({
+        "type": "open",
+        "url": url,
+        "origin": "remote",
+        "host": socket.gethostname(),
+        "cmd": f"open-url {url}",
+        "cwd": os.getcwd(),
+    })
+
+    if response is None:
+        log_fallback(url, "credential tunnel down — open this manually")
+    if not response.get("ok"):
+        log_fallback(url, "open denied — open this manually")
+
+    sys.stderr.write(f"{GREEN}opened on the Mac{RESET}\n")
+
+
+if __name__ == "__main__":
+    main()

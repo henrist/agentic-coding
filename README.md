@@ -118,6 +118,15 @@ host Docker daemon.
 The SSH wrapper strips `SSH_AUTH_SOCK` by default. Agent access is only restored if approved
 through the credential server, preventing unauthorized key signing.
 
+### Opening URLs
+
+The sandbox can't reach `lsd`, so `bin/open` forwards http(s) URLs to the server,
+which runs the real `open` outside. Remote hosts get the same via `remote/open-url`
+(vendored downstream) over the forwarded socket — useful on a headless box where an
+agent CLI wants a browser for OAuth. Sandbox opens are silent; remote ones prompt
+per URL, and an OAuth authorize URL with a loopback `redirect_uri` also gets an
+`ssh -L` tunnel so the callback reaches the remote listener.
+
 ### Approval persistence
 
 Active approvals are persisted to `.approvals.toml` and restored on server restart.
