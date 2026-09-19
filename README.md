@@ -55,7 +55,7 @@ Then use `gh` / `aws` inside the sandbox. Each credential request shows a single
 
 Sensitive commands (secretsmanager/kms/keyvault except list-*/describe-* metadata ops; ssm only with `--with-decryption`) are gated separately: a persistent approval without **include sensitive** still prompts once the first time a sensitive command hits it. Turn the toggle on to pre-consent and skip that later prompt.
 
-Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:dev` doesn't approve `aws:admin`; SSH is scoped per-host, so each `ssh <host>` is approved independently). Only one approval is active per context at a time — selecting a new mode replaces the previous one.
+Approvals are scoped per-sandbox and per-credential (e.g. approving `aws:dev` doesn't approve `aws:admin`; SSH is scoped per-host, so each `ssh <host>` is approved independently). A credential can hold several grants at once — approving `aws rds describe-db-clusters` and then `aws secretsmanager get-secret-value` leaves both live. Re-approving the same mode/pattern replaces that grant; expired ones are dropped.
 
 By default, git/gh reads and non-protected-branch pushes are auto-approved without prompting:
 - **Reads**: `git fetch/pull/clone`, `gh pr list/view/diff`, etc.

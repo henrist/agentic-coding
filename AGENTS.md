@@ -94,7 +94,9 @@ Response: {"ok": false}\n
 Approval is per `(safehouse_pid, cred_key)`. Cred key: `"gh"`, `"aws:<profile>"`, `"az"`, `"ssh"`, `"docker"`, or `"netrc:<machine>"`.
 Approving one credential doesn't approve others.
 
-Single-screen approval form: hotkeys toggle each row, `Enter` confirms (defaults to once). Scope `o`=once/`r`=reads/`p`=pattern/`a`=all; duration for r/p/a `1`/`5`/`s` (default 5min); `g` cycles pattern granularity; `t` toggles include-sensitive (default on when the command is itself sensitive); `d`/`Esc`=deny. Only one approval active per context.
+Single-screen approval form: hotkeys toggle each row, `Enter` confirms (defaults to once). Scope `o`=once/`r`=reads/`p`=pattern/`a`=all; duration for r/p/a `1`/`5`/`s` (default 5min); `g` cycles pattern granularity; `t` toggles include-sensitive (default on when the command is itself sensitive); `d`/`Esc`=deny.
+
+`approvals` maps `(safehouse_pid, cred_key)` to a *list* of grants, so a credential can hold several patterns at once; the first live grant matching the command wins. Re-approving the same `(mode, pattern)` replaces that grant.
 
 By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
 Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
