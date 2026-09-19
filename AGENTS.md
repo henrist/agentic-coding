@@ -98,6 +98,8 @@ Single-screen approval form: hotkeys toggle each row, `Enter` confirms (defaults
 
 `approvals` maps `(safehouse_pid, cred_key)` to a *list* of grants, so a credential can hold several patterns at once; the first live grant matching the command wins. Re-approving the same `(mode, pattern)` replaces that grant.
 
+Sensitive commands hitting an approval without include-sensitive get a second gate: `Enter`=once, `d`/`Esc`=deny, `r`=rest of that approval (stored on the approval entry, so it dies with it), `s`=rest of the scope (stored in `sensitive_scopes`, keyed `(safehouse_pid, cred_key)`, survives re-approvals; persisted for local pids only).
+
 By default, git/gh reads and non-protected-branch pushes (not main/master) are auto-approved.
 Disable with `--no-auto-git-reads` or `--no-auto-git-push`.
 Repos in `main-push-repos` under `[auto-approve]` in `config.toml` (as `owner/repo`, matched against the `origin` remote) also get main/master pushes auto-approved.
